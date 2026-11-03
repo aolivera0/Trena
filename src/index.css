@@ -1,0 +1,37 @@
+@import 'tailwindcss';
+
+/* Trena es solo modo oscuro: estos tokens son la única paleta */
+@theme {
+  --color-bg: #0b0d10;
+  --color-surface: #15181d;
+  --color-surface-2: #1d2128;
+  --color-border: #2a2f38;
+  --color-text: #e8eaed;
+  --color-muted: #8b929c;
+  --color-accent: #4da3ff;
+  --color-success: #22c55e;
+  --color-warning: #f5b942;
+  --color-danger: #f0525a;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+html {
+  color-scheme: dark;
+  background: var(--color-bg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+/* Los números de pesos y reps no deben "bailar" al cambiar */
+input,
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
