@@ -10,6 +10,7 @@ import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { ProgramPage } from './pages/ProgramPage'
+import { SessionPage } from './pages/SessionPage'
 import { SettingsPage } from './pages/SettingsPage'
 
 export const router = createBrowserRouter([
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
               { path: '/', element: <HomePage /> },
               { path: '/history', element: <HistoryPage /> },
               { path: '/program/:athleteId/:programId', element: <ProgramPage /> },
+              { path: '/session/:athleteId/:sessionId', element: <SessionPage /> },
               { path: '/settings', element: <SettingsPage /> },
               {
                 element: <RequireCoach />,

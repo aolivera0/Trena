@@ -265,6 +265,12 @@ Sesión en vivo, fila de serie: `SET (W/1/2…) · ANTERIOR · KG (sugerido como
 - Prueba sin conexión de punta a punta (modo avión).
 - ✅ Criterio: el guardado se sincroniza sin congelar la UI.
 
+Notas de implementación:
+- Los tiempos de sesión (`startedAt`, `finishedAt`, `completedAt`, `restTimer.endsAt`) son milisegundos del reloj del cliente, no `serverTimestamp`, para que el cronómetro funcione al instante sin conexión.
+- Cada campo de una serie se escribe con su field path (`sets.<id>.reps`), con debounce de 400 ms; marcar ✓ escribe al instante y rellena peso/reps con lo sugerido si estaban vacíos.
+- El descanso es una barra fija abajo (no en línea como en la captura), visible también para el entrenador.
+- Solo hay PR si existe algo con qué comparar (historial del ejercicio o RM). Si el ejercicio no tenía RM, la primera sesión lo crea.
+
 ### Fase 3 — Análisis
 - Historial y detalle por ejercicio: e1RM, tendencia e histograma.
 - Peso corporal con media de 8 días.

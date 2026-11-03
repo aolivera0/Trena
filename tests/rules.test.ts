@@ -243,3 +243,45 @@ describe('ejercicios propios', () => {
     await assertFails(updateDoc(doc(as(ATHLETE), 'exercises', 'e1'), { name: 'Hack' }))
   })
 })
+
+describe('sesiones', () => {
+  const session = (createdBy: string) => ({
+    name: 'Día 1',
+    status: 'IN_PROGRESS',
+    source: null,
+    startedAt: Date.now(),
+    finishedAt: null,
+    bodyweightKg: 80,
+    restTimer: null,
+    summary: null,
+    createdBy,
+  })
+  const sessionDoc = (db: Firestore, id: string) => doc(db, 'users', ATHLETE, 'sessions', id)
+  const entryDoc = (db: Firestore, sid: string, id: string) => doc(db, 'users', ATHLETE, 'sessions', sid, 'entries', id)
+
+  it('el atleta crea y registra series; el entrenador las ve y edita en vivo', async () => {
+    const a = as(ATHLETE)
+    await assertSucceeds(setDoc(sessionDoc(a, 's1'), session(ATHLETE)))
+    await assertSucceeds(setDoc(entryDoc(a, 's1', 'e1'), { order: 0, sets: { x: { weightKg: 100, reps: 5 } } }))
+    const c = as(COACH)
+    await assertSucceeds(getDoc(entryDoc(c, 's1', 'e1')))
+    await assertSucceeds(updateDoc(entryDoc(c, 's1', 'e1'), { 'sets.x.reps': 6 }))
+    await assertSucceeds(getDocs(collection(c, 'users', ATHLETE, 'sessions')))
+  })
+
+  it('el entrenador también puede iniciar una sesión para su atleta', async () => {
+    await assertSucceeds(setDoc(sessionDoc(as(COACH), 's2'), session(COACH)))
+  })
+
+  it('nadie ajeno lee ni escribe sesiones', async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'users', ATHLETE, 'sessions', 's3'), session(ATHLETE)))
+    await assertFails(getDoc(sessionDoc(as(OTHER), 's3')))
+    await assertFails(setDoc(sessionDoc(as(OTHER), 's4'), session(OTHER)))
+    await assertFails(setDoc(doc(as(OTHER), 'users', ATHLETE, 'exerciseStats', 'wg:squat'), { bestWeightKg: 999 }))
+  })
+
+  it('no se crea una sesión ya finalizada ni a nombre de otro', async () => {
+    await assertFails(setDoc(sessionDoc(as(ATHLETE), 's5'), { ...session(ATHLETE), status: 'FINISHED' }))
+    await assertFails(setDoc(sessionDoc(as(ATHLETE), 's6'), session(COACH)))
+  })
+})

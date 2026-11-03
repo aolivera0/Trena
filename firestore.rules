@@ -83,6 +83,23 @@ service cloud.firestore {
       match /bodyweight/{dateKey} {
         allow read, write: if canAccessAthlete(uid);
       }
+      match /exerciseStats/{exerciseId} {
+        allow read, write: if canAccessAthlete(uid);
+      }
+
+      // ---------- Sesiones ----------
+      // El atleta y su entrenador las ven y editan en tiempo real
+
+      match /sessions/{sessionId} {
+        allow read, update, delete: if canAccessAthlete(uid);
+        allow create: if canAccessAthlete(uid)
+          && request.resource.data.status == 'IN_PROGRESS'
+          && request.resource.data.createdBy == request.auth.uid;
+
+        match /entries/{entryId} {
+          allow read, write: if canAccessAthlete(uid);
+        }
+      }
 
       // ---------- Programas ----------
 

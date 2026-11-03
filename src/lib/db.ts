@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { track } from './feedback'
 import { db } from './firebase'
+import { newId } from './ids'
 import type { CustomExercise, Day, Invite, ExerciseRef, Prefs, Program, UserProfile, Week } from './types'
 
 // ---------- Rutas ----------
@@ -33,7 +34,7 @@ export const weeksCol = (athleteId: string, programId: string) =>
 export const weekRef = (athleteId: string, programId: string, weekId: string) =>
   doc(db, 'users', athleteId, 'programs', programId, 'weeks', weekId)
 
-export const newId = () => crypto.randomUUID()
+export { newId } from './ids'
 
 // Fecha local YYYY-MM-DD (id de los registros de peso corporal)
 export function localDateKey(date = new Date()): string {
@@ -124,7 +125,7 @@ export async function logBodyweight(uid: string, kg: number, dateKey = localDate
 const INVITE_DAYS = 7
 
 export async function createInvite(coachId: string, coachName: string): Promise<string> {
-  const token = newId().replaceAll('-', '')
+  const token = newId()
   await setDoc(inviteRef(token), {
     coachId,
     coachName,

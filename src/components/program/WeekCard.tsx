@@ -1,4 +1,4 @@
-import { ChevronDown, Copy, Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, Copy, Eye, EyeOff, Play, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useDebouncedWeek } from '../../hooks/useDebouncedWeek'
 import { deleteWeek, duplicateWeek, saveWeek, setWeekStatus } from '../../lib/db'
@@ -18,6 +18,7 @@ export function WeekCard({
   bodyweightKg,
   nextIndex,
   defaultOpen,
+  onStartDay,
 }: {
   athleteId: string
   programId: string
@@ -27,6 +28,8 @@ export function WeekCard({
   bodyweightKg: number
   nextIndex: number
   defaultOpen: boolean
+  // Solo para el propio atleta: inicia una sesión con este día como plantilla
+  onStartDay?: (week: WithId<Week>, day: Day) => void
 }) {
   const [open, setOpen] = useState(defaultOpen)
   const [days, setDays] = useDebouncedWeek(athleteId, programId, week.id, week.days)
@@ -180,6 +183,12 @@ export function WeekCard({
                 />
               ))}
               {day.exercises.length === 0 && !canEdit && <EmptyState>Día sin ejercicios.</EmptyState>}
+
+              {onStartDay && day.exercises.length > 0 && (
+                <Button variant="primary" className="w-full" onClick={() => onStartDay({ ...week, days }, day)}>
+                  <Play size={16} /> Empezar {day.name}
+                </Button>
+              )}
 
               {canEdit && (
                 <Button className="w-full" onClick={() => setPicking(true)}>

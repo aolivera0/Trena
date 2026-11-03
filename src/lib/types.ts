@@ -100,3 +100,79 @@ export type Week = {
   days: Day[]
   updatedAt: Timestamp
 }
+
+// ---------- Sesiones ----------
+// Los tiempos de sesión son milisegundos del reloj del cliente (no serverTimestamp)
+// para que el cronómetro y el descanso funcionen al instante sin conexión.
+
+export type SetPrescription = {
+  groupId: string
+  reps: Reps
+  load: Load
+}
+
+export type SessionSet = {
+  order: number
+  kind: 'warmup' | 'working'
+  prescription: SetPrescription | null
+  restSec: number
+  weightKg: number | null // lastre en ejercicios con peso corporal
+  reps: number | null
+  rpe: number | null
+  done: boolean
+  completedAt: number | null
+}
+
+export type SessionEntry = {
+  exercise: ExerciseRef
+  order: number
+  coachNotes: string
+  athleteNotes: string
+  sets: Record<string, SessionSet>
+}
+
+export type PrType = 'weight' | 'volume' | 'e1rm'
+
+export type SessionPr = {
+  exerciseId: string
+  exerciseName: string
+  type: PrType
+  valueKg: number
+  previousKg: number | null
+  reps: number
+}
+
+export type SessionSummary = {
+  tonnageKg: number
+  durationSec: number
+  setsDone: number
+  prs: SessionPr[]
+  rmUpdates: { exerciseId: string; exerciseName: string; e1rmKg: number; previousKg: number | null }[]
+}
+
+export type Session = {
+  name: string
+  status: 'IN_PROGRESS' | 'FINISHED'
+  source: {
+    programId: string
+    weekId: string
+    dayId: string
+    label: string // "Bloque fuerza · Semana 1 · Día 1"
+  } | null
+  startedAt: number
+  finishedAt: number | null
+  bodyweightKg: number
+  restTimer: { endsAt: number; durationSec: number } | null
+  summary: SessionSummary | null
+  createdBy: string
+}
+
+export type ExerciseStats = {
+  exercise: ExerciseRef
+  lastSets: { kind: SessionSet['kind']; weightKg: number; reps: number; rpe: number | null }[]
+  lastSessionId: string
+  lastDate: number
+  bestWeightKg: number // carga total
+  bestSetVolumeKg: number
+  bestE1rmKg: number
+}

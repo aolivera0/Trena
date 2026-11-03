@@ -1,4 +1,4 @@
-import { newId } from './db'
+import { newId } from './ids'
 import { defaultLoad, defaultReps, suggestWeight, type Suggestion } from './strength/prescription'
 import type { Day, ExerciseRef, ProgramExercise, SetGroup } from './types'
 

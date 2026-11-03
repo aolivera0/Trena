@@ -2,6 +2,7 @@ import { Navigate, useNavigate, useParams } from 'react-router'
 import { useProfile } from '../auth/AuthProvider'
 import { Avatar, ProgramList } from '../components/ProgramList'
 import { RmList } from '../components/RmList'
+import { SessionList } from '../components/session/SessionList'
 import { Button, Card, FullScreenSpinner } from '../components/ui'
 import { useAthlete } from '../hooks/useAthlete'
 import { useAthletes } from '../hooks/useAthletes'
@@ -41,6 +42,8 @@ export function AthletePage() {
           </p>
         </div>
       </div>
+
+      <SessionList athleteId={athleteId} />
 
       <ProgramList athleteId={athleteId} canCreate copyTargets={copyTargets} />
 

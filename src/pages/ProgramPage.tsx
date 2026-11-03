@@ -9,7 +9,9 @@ import { useAthlete } from '../hooks/useAthlete'
 import { useDoc, useQuery } from '../hooks/useFirestore'
 import { addWeek, deleteProgram, programRef, renameProgram, weeksCol } from '../lib/db'
 import { track } from '../lib/feedback'
-import type { Program, Week } from '../lib/types'
+import { expandDay } from '../lib/session'
+import { startSession } from '../lib/sessionDb'
+import type { Day, Program, Week, WithId } from '../lib/types'
 
 export function ProgramPage() {
   const { athleteId = '', programId = '' } = useParams()
@@ -47,6 +49,20 @@ export function ProgramPage() {
   function saveName() {
     if (name.trim()) track(renameProgram(athleteId, programId, name.trim()))
     setRenaming(false)
+  }
+
+  function startDay(week: WithId<Week>, day: Day) {
+    const id = startSession(
+      athleteId,
+      user.uid,
+      {
+        name: day.name,
+        source: { programId, weekId: week.id, dayId: day.id, label: `${program!.name} · ${week.name} · ${day.name}` },
+        bodyweightKg: athlete!.bodyweightKg ?? 0,
+      },
+      expandDay(day),
+    )
+    navigate(`/session/${athleteId}/${id}`)
   }
 
   function remove() {
@@ -109,6 +125,7 @@ export function ProgramPage() {
             bodyweightKg={athlete.bodyweightKg ?? 0}
             nextIndex={nextIndex}
             defaultOpen={i === sorted.length - 1}
+            onStartDay={isSelf ? startDay : undefined}
           />
         ))
       )}
