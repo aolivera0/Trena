@@ -36,7 +36,8 @@ Complementa a [SPEC.md](SPEC.md). Aquí quedan las decisiones tomadas, el modelo
 - Unidades kg o lb, y redondeo de 2.5 o 1.25 kg (5 o 2.5 lb), a elección de cada usuario.
 
 ### Ejercicios
-- Catálogo base: paquete npm `@bryllim/workout-guide` (302 ejercicios, 3 imágenes SVG cada uno). Incluye squat, bench-press, deadlift, pull-up, chin-up, dip, weighted-pull-up y weighted-dip. **No incluye muscle-up**: será un ejercicio propio sin imagen.
+- Catálogo base: paquete npm `@bryllim/workout-guide` (302 ejercicios, 3 imágenes cada uno: trazos blancos sobre fondo transparente). Incluye squat, bench-press, deadlift, pull-up, chin-up, dip, weighted-pull-up y weighted-dip. **No incluye muscle-up**: se agrega como ejercicio del catálogo sin imagen.
+- El catálogo **no** se copia a Firestore: `npm run catalog` genera `src/data/catalog.json` (~50 KB) y las imágenes se sirven desde jsDelivr, cacheadas por el service worker. Ids: `wg:<slug>` para el catálogo, `c:<docId>` para ejercicios propios. Los RMs iniciales de dominadas y fondos usan `weighted-pull-up` y `weighted-dip`.
 - Las imágenes son CC BY-SA 4.0: hace falta una página de créditos con atribución y enlace a la licencia.
 - Entrenadores y atletas pueden crear ejercicios propios, con o sin imagen.
 - Una **variante** (pausa, tempo…) es un ejercicio distinto, con historial y RM propios.
@@ -83,6 +84,7 @@ users/{uid}
   displayName, email, photoURL
   roles: { coach: bool, athlete: bool }
   coachId: uid | null
+  coachName: string | null            // copiado de la invitación: el atleta no puede leer el perfil del entrenador
   inviteToken: string | null          // token usado para vincularse (lo validan las reglas)
   prefs: { unit: 'kg'|'lb', roundingKg: 2.5|1.25, e1rmFormula: 'epley'|'brzycki'|'lander' }
   createdAt
@@ -185,7 +187,7 @@ k:  0     1     2     3     4     5     6     7     8     9    10    11 ...
 %: 100  97.8  95.5  93.9  92.2  90.7  89.2  87.8  86.3  85.0  83.7  82.4 ...
 ```
 
-Así se cubre todo el rango RPE 6–10 × 1–12 reps con un array. RIR = 10 − RPE. Fuera de la tabla (RPE < 6 o más de 12 reps) se usa la fórmula del usuario y se avisa que la estimación es poco precisa.
+Así se cubre todo el rango RPE 6–10 × 1–12 reps con un array. RIR = 10 − RPE (estándar de Tuchscherer). **Ojo:** la columna RIR de la imagen está duplicada (dice RPE 9 = 2 RIR), lo que no cuadra con sus propios porcentajes (RPE 9 @ 1 rep = RPE 10 @ 2 reps = 1 rep en reserva); se usa la relación estándar. Fuera de la tabla (RPE < 6 o más de 12 reps) se usa la fórmula del usuario y se avisa que la estimación es poco precisa.
 
 ### e1RM de una serie
 - Carga total = `weightKg + (addsBodyweight ? bodyweightKg : 0)`.
@@ -248,7 +250,7 @@ Sesión en vivo, fila de serie: `SET (W/1/2…) · ANTERIOR · KG (sugerido como
 ### Fase 1 — Usuarios, ejercicios y programación
 - Login, onboarding, preferencias y RMs iniciales.
 - Invitaciones entrenador → atleta.
-- Catálogo de ejercicios (seed desde `@bryllim/workout-guide`), ejercicios propios y variantes.
+- Catálogo de ejercicios (JSON generado desde `@bryllim/workout-guide`), ejercicios propios y variantes.
 - Librería `strength/` con tests: tabla RPE, fórmulas, sugerido, redondeo, unidades.
 - Editor de programas: semanas, días, ejercicios y grupos de series con todos los tipos de carga y reps; publicar, despublicar y duplicar.
 - Reglas de Firestore con tests.

@@ -31,6 +31,18 @@ export default defineConfig({
         // SPA: cualquier ruta sin red sirve index.html desde la caché
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/__\//],
+        runtimeCaching: [
+          {
+            // Ilustraciones de ejercicios (workout-guide en jsDelivr): no cambian por versión
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/@bryllim\/workout-guide@/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'exercise-images',
+              expiration: { maxEntries: 1000 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       devOptions: { enabled: false },
     }),

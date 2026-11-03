@@ -12,7 +12,9 @@
     "test:watch": "vitest",
     "emulators": "firebase emulators:start --project demo-trena",
     "deploy": "npm run build && firebase deploy --only hosting,firestore",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "catalog": "node scripts/build-catalog.mjs",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-trena 'vitest run --config vitest.rules.config.ts'"
   },
   "dependencies": {
     "firebase": "^13.2.0",
@@ -22,6 +24,8 @@
     "react-router": "^8.5.1"
   },
   "devDependencies": {
+    "@bryllim/workout-guide": "^1.0.0",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@tailwindcss/vite": "^4.3.4",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",

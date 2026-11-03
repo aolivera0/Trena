@@ -1,11 +1,154 @@
 rules_version = '2';
 
-// Fase 0: todo cerrado. Las reglas reales (roles, invitaciones, DRAFT/PUBLISHED)
-// llegan en la Fase 1 junto con sus tests.
+// Modelo de datos: docs/PLAN.md §3. Toda la lógica corre en el cliente (plan
+// Spark, sin Cloud Functions), así que estas reglas son la única barrera.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userDoc(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    // El entrenador vigente del atleta es quien figura en su perfil
+    function isCoachOf(uid) {
+      return signedIn() && exists(userDoc(uid)) && get(userDoc(uid)).data.coachId == request.auth.uid;
+    }
+
+    function canAccessAthlete(uid) {
+      return isUser(uid) || isCoachOf(uid);
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // ---------- Perfiles ----------
+
+    // Quitar el vínculo atleta–entrenador (lo puede hacer cualquiera de los dos)
+    function unlinking() {
+      return changedKeys().hasOnly(['coachId', 'coachName', 'inviteToken'])
+        && request.resource.data.coachId == null
+        && request.resource.data.coachName == null
+        && request.resource.data.inviteToken == null;
+    }
+
+    // Vincularse a un entrenador solo con una invitación válida, que se marca
+    // como usada en el mismo batch (por eso getAfter).
+    function acceptingInvite(uid) {
+      let token = request.resource.data.inviteToken;
+      let invitePath = /databases/$(database)/documents/invites/$(token);
+      let before = get(invitePath).data;
+      let after = getAfter(invitePath).data;
+      return token is string
+        && changedKeys().hasOnly(['coachId', 'coachName', 'inviteToken', 'roles'])
+        && before.usedBy == null
+        && before.expiresAt > request.time
+        && after.usedBy == uid
+        && request.resource.data.coachId == before.coachId
+        && request.resource.data.coachName == before.coachName
+        && request.resource.data.roles.athlete == true;
+    }
+
+    match /users/{uid} {
+      allow read: if isUser(uid) || (signedIn() && resource.data.coachId == request.auth.uid);
+
+      allow create: if isUser(uid)
+        && request.resource.data.coachId == null
+        && request.resource.data.coachName == null
+        && request.resource.data.inviteToken == null;
+
+      allow update: if isUser(uid) && (
+          !changedKeys().hasAny(['coachId', 'coachName', 'inviteToken'])
+          || unlinking()
+          || acceptingInvite(uid)
+        );
+
+      allow update: if signedIn() && resource.data.coachId == request.auth.uid && unlinking();
+
+      // Datos de fuerza: el atleta y su entrenador
+      match /rms/{exerciseId} {
+        allow read, write: if canAccessAthlete(uid);
+      }
+      match /rmHistory/{entryId} {
+        allow read, write: if canAccessAthlete(uid);
+      }
+      match /bodyweight/{dateKey} {
+        allow read, write: if canAccessAthlete(uid);
+      }
+
+      // ---------- Programas ----------
+
+      match /programs/{programId} {
+        function programPath() {
+          return /databases/$(database)/documents/users/$(uid)/programs/$(programId);
+        }
+
+        // Al crear el programa en el mismo batch que su primera semana todavía
+        // no existe; al borrarlo, ya no existe después. Se usa la versión que haya.
+        function programData() {
+          return exists(programPath()) ? get(programPath()).data : getAfter(programPath()).data;
+        }
+
+        // El entrenador edita cualquier programa del atleta; el atleta solo los suyos
+        function canEditProgram() {
+          return isCoachOf(uid) || (isUser(uid) && programData().ownerId == request.auth.uid);
+        }
+
+        allow read: if canAccessAthlete(uid);
+        allow create: if canAccessAthlete(uid) && request.resource.data.ownerId == request.auth.uid;
+        allow update: if canEditProgram() && request.resource.data.ownerId == resource.data.ownerId;
+        allow delete: if canEditProgram();
+
+        match /weeks/{weekId} {
+          // R-2: el atleta no ve semanas en borrador de programas ajenos
+          allow read: if canEditProgram() || (isUser(uid) && resource.data.status == 'PUBLISHED');
+          allow create, update: if canEditProgram() && request.resource.data.status in ['DRAFT', 'PUBLISHED'];
+          allow delete: if canEditProgram();
+        }
+      }
+    }
+
+    // ---------- Invitaciones ----------
+
+    match /invites/{token} {
+      // Quien tiene el link puede leerla; el token es secreto (128 bits)
+      allow get: if signedIn();
+      allow list: if signedIn() && resource.data.coachId == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.coachId == request.auth.uid
+        && get(userDoc(request.auth.uid)).data.roles.coach == true
+        && request.resource.data.usedBy == null;
+
+      // Aceptar: solo marcarla como propia, una vez, y en el mismo batch que el perfil
+      allow update: if signedIn()
+        && resource.data.usedBy == null
+        && resource.data.expiresAt > request.time
+        && resource.data.coachId != request.auth.uid
+        && changedKeys().hasOnly(['usedBy', 'usedAt'])
+        && request.resource.data.usedBy == request.auth.uid
+        && getAfter(userDoc(request.auth.uid)).data.coachId == resource.data.coachId;
+
+      allow delete: if signedIn() && resource.data.coachId == request.auth.uid;
+    }
+
+    // ---------- Ejercicios propios ----------
+
+    match /exercises/{exerciseId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
   }
 }

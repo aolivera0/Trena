@@ -1,16 +1,19 @@
 import { ChartLine, Dumbbell, Settings, Users, WifiOff } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router'
+import { useProfile } from '../auth/AuthProvider'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 
 const tabs = [
-  { to: '/', label: 'Entrenar', icon: Dumbbell, end: true },
-  { to: '/history', label: 'Historial', icon: ChartLine },
-  { to: '/coach', label: 'Atletas', icon: Users },
+  { to: '/', label: 'Entrenar', icon: Dumbbell, end: true, role: 'athlete' },
+  { to: '/history', label: 'Historial', icon: ChartLine, role: 'athlete' },
+  { to: '/coach', label: 'Atletas', icon: Users, role: 'coach' },
   { to: '/settings', label: 'Ajustes', icon: Settings },
-]
+] as const
 
 export function AppShell() {
   const online = useOnlineStatus()
+  const { profile } = useProfile()
+  const visible = tabs.filter((t) => !('role' in t) || profile.roles[t.role])
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-xl flex-col">
@@ -28,12 +31,15 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <nav className="sticky bottom-0 grid grid-cols-4 border-t border-border bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-        {tabs.map(({ to, label, icon: Icon, end }) => (
+      <nav
+        className="sticky bottom-0 grid border-t border-border bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+        style={{ gridTemplateColumns: `repeat(${visible.length}, 1fr)` }}
+      >
+        {visible.map(({ to, label, icon: Icon, ...t }) => (
           <NavLink
             key={to}
             to={to}
-            end={end}
+            end={'end' in t}
             className={({ isActive }) =>
               `flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors ${
                 isActive ? 'text-accent' : 'text-muted hover:text-text'

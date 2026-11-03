@@ -11,13 +11,13 @@ const env = import.meta.env
 
 export const useEmulators = env.VITE_USE_EMULATORS === 'true'
 
-// Sin proyecto real configurado se usa un proyecto "demo-*", que los emuladores
-// aceptan sin credenciales.
-const projectId = env.VITE_FIREBASE_PROJECT_ID || 'demo-trena'
+// Con emuladores siempre se usa el proyecto "demo-trena" (el mismo con el que
+// arranca `npm run emulators`), aunque .env.local tenga el proyecto real.
+const projectId = useEmulators ? 'demo-trena' : env.VITE_FIREBASE_PROJECT_ID || 'demo-trena'
 
 export const app = initializeApp({
-  apiKey: env.VITE_FIREBASE_API_KEY || 'demo-api-key',
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || `${projectId}.firebaseapp.com`,
+  apiKey: (!useEmulators && env.VITE_FIREBASE_API_KEY) || 'demo-api-key',
+  authDomain: (!useEmulators && env.VITE_FIREBASE_AUTH_DOMAIN) || `${projectId}.firebaseapp.com`,
   projectId,
   storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
