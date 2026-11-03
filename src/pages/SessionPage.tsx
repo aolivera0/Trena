@@ -44,11 +44,11 @@ export function SessionPage() {
   if (!session || !athlete || (!isSelf && !isCoach)) return <Navigate to="/" replace />
 
   const backTo = isSelf ? '/' : `/athlete/${athleteId}`
+  const entries = [...rawEntries].sort((a, b) => a.order - b.order)
   if (session.status === 'FINISHED' && session.summary) {
-    return <SessionSummaryView session={session} summary={session.summary} backTo={backTo} />
+    return <SessionSummaryView session={session} summary={session.summary} entries={entries} backTo={backTo} />
   }
 
-  const entries = [...rawEntries].sort((a, b) => a.order - b.order)
   const statsById = new Map(statsList.map((s) => [s.id, s]))
   const usesBodyweight = entries.some((e) => e.exercise.addsBodyweight)
   const pendingSets = entries.reduce((n, e) => n + sortedSets(e).filter(([, s]) => !s.done).length, 0)
@@ -70,6 +70,7 @@ export function SessionPage() {
         startedAt: session!.startedAt,
         finishedAt,
         sessionId,
+        sessionName: session!.name,
       },
     )
     finishSession(athleteId, sessionId, finishedAt, result, entries)

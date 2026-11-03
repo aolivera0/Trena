@@ -1,4 +1,5 @@
-import { Navigate, useNavigate, useParams } from 'react-router'
+import { ChevronRight } from 'lucide-react'
+import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { useProfile } from '../auth/AuthProvider'
 import { Avatar, ProgramList } from '../components/ProgramList'
 import { RmList } from '../components/RmList'
@@ -42,6 +43,14 @@ export function AthletePage() {
           </p>
         </div>
       </div>
+
+      <Link
+        to={`/athlete/${athleteId}/history`}
+        className="flex items-center justify-between rounded-xl border border-border bg-surface p-4 hover:bg-surface-2"
+      >
+        <span className="font-medium">Historial, progreso y peso corporal</span>
+        <ChevronRight size={18} className="text-muted" />
+      </Link>
 
       <SessionList athleteId={athleteId} />
 

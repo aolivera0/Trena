@@ -278,6 +278,12 @@ Notas de implementación:
 - Panel del entrenador: prescrito vs hecho.
 - ✅ Criterio: media de 8 días correcta con días sin registro.
 
+Notas de implementación:
+- Al finalizar una sesión se escribe `users/{uid}/exerciseLogs/{sessionId}_{exerciseId}` con las series y el e1RM de cada una; el detalle del ejercicio lee de ahí (sesiones terminadas antes de la Fase 3 no aparecen en esa gráfica).
+- Gráficas en SVG propio (sin librería): eje X proporcional al tiempo, crosshair + tooltip, colores validados (`--color-chart-1/2`).
+- La tendencia de e1RM muestra un punto por día (el mejor). El histograma usa las series efectivas (lastre en ejercicios con peso corporal).
+- Calculadora accesible desde el ícono de la cabecera.
+
 ### Más adelante (fuera del alcance actual)
 Progresiones automáticas, superseries, notificaciones con la pantalla bloqueada (app nativa o push), migración a Blaze y Cloud Functions para multi-entrenador comercial.
 

@@ -83,7 +83,14 @@ describe('sugerencia en vivo', () => {
 })
 
 describe('finalizar', () => {
-  const opts = { bodyweightKg: 80, formula: 'epley' as const, startedAt: 0, finishedAt: 3_600_000, sessionId: 'S' }
+  const opts = {
+    bodyweightKg: 80,
+    formula: 'epley' as const,
+    startedAt: 0,
+    finishedAt: 3_600_000,
+    sessionId: 'S',
+    sessionName: 'Día 1',
+  }
 
   it('tonelaje, duración y series contando calentamientos y solo series hechas', () => {
     const e = entry(squat, [
@@ -96,6 +103,18 @@ describe('finalizar', () => {
     expect(summary.tonnageKg).toBe(60 * 5 + 100 * 5)
     expect(summary.durationSec).toBe(3600)
     expect(summary.setsDone).toBe(2)
+  })
+
+  it('genera el historial por ejercicio con e1RM por serie', () => {
+    const e = entry(squat, [
+      { kind: 'warmup', done: true, weightKg: 60, reps: 5 },
+      { done: true, weightKg: 150, reps: 3, rpe: 8 },
+    ])
+    const { logs } = computeFinish([e], new Map(), new Map(), opts)
+    expect(logs).toHaveLength(1)
+    expect(logs[0]).toMatchObject({ exerciseId: squat.id, sessionId: 'S', date: 3_600_000, tonnageKg: 750 })
+    expect(logs[0].sets[1].e1rmKg).toBeCloseTo(173.81, 1)
+    expect(logs[0].bestE1rmKg).toBeCloseTo(173.81, 1)
   })
 
   it('con lastre suma el peso corporal', () => {

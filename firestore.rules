@@ -86,6 +86,9 @@ service cloud.firestore {
       match /exerciseStats/{exerciseId} {
         allow read, write: if canAccessAthlete(uid);
       }
+      match /exerciseLogs/{logId} {
+        allow read, write: if canAccessAthlete(uid);
+      }
 
       // ---------- Sesiones ----------
       // El atleta y su entrenador las ven y editan en tiempo real

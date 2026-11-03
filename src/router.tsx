@@ -2,7 +2,9 @@ import { createBrowserRouter } from 'react-router'
 import { RequireAuth, RequireCoach, RequireProfile } from './auth/guards'
 import { AppShell } from './components/AppShell'
 import { AthletePage } from './pages/AthletePage'
+import { CalculatorPage } from './pages/CalculatorPage'
 import { CoachPage } from './pages/CoachPage'
+import { ExercisePage } from './pages/ExercisePage'
 import { HistoryPage } from './pages/HistoryPage'
 import { HomePage } from './pages/HomePage'
 import { InvitePage } from './pages/InvitePage'
@@ -28,6 +30,8 @@ export const router = createBrowserRouter([
             children: [
               { path: '/', element: <HomePage /> },
               { path: '/history', element: <HistoryPage /> },
+              { path: '/exercise/:athleteId/:exerciseId', element: <ExercisePage /> },
+              { path: '/calculator', element: <CalculatorPage /> },
               { path: '/program/:athleteId/:programId', element: <ProgramPage /> },
               { path: '/session/:athleteId/:sessionId', element: <SessionPage /> },
               { path: '/settings', element: <SettingsPage /> },
@@ -36,6 +40,7 @@ export const router = createBrowserRouter([
                 children: [
                   { path: '/coach', element: <CoachPage /> },
                   { path: '/athlete/:athleteId', element: <AthletePage /> },
+                  { path: '/athlete/:athleteId/history', element: <HistoryPage /> },
                 ],
               },
               { path: '*', element: <NotFoundPage /> },

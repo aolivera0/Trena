@@ -13,6 +13,11 @@
   --color-warning: #f5b942;
   --color-danger: #f0525a;
 
+  /* Series de gráficas: validadas contra la superficie #15181d
+     (banda de luminosidad, daltonismo y contraste ≥ 3:1) */
+  --color-chart-1: #3987e5;
+  --color-chart-2: #d95926;
+
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 

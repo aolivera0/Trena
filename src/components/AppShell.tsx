@@ -1,5 +1,5 @@
-import { ChartLine, Dumbbell, Settings, Users, WifiOff } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router'
+import { Calculator, ChartLine, Dumbbell, Settings, Users, WifiOff } from 'lucide-react'
+import { Link, NavLink, Outlet } from 'react-router'
 import { useProfile } from '../auth/AuthProvider'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 
@@ -19,12 +19,22 @@ export function AppShell() {
     <div className="mx-auto flex min-h-dvh max-w-xl flex-col">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-bg/90 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
         <span className="text-lg font-bold tracking-tight">Trena</span>
-        {!online && (
-          <span className="flex items-center gap-1.5 rounded-full bg-warning/15 px-2.5 py-1 text-xs font-medium text-warning">
-            <WifiOff size={14} aria-hidden />
-            Sin conexión
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {!online && (
+            <span className="flex items-center gap-1.5 rounded-full bg-warning/15 px-2.5 py-1 text-xs font-medium text-warning">
+              <WifiOff size={14} aria-hidden />
+              Sin conexión
+            </span>
+          )}
+          <Link
+            to="/calculator"
+            aria-label="Calculadora RPE"
+            title="Calculadora RPE"
+            className="-mr-2 flex size-9 items-center justify-center rounded-lg text-muted hover:text-text"
+          >
+            <Calculator size={20} />
+          </Link>
+        </div>
       </header>
 
       <main className="flex-1 px-4 py-5">

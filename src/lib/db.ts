@@ -113,10 +113,12 @@ export async function setRm(uid: string, exercise: ExerciseRef, e1rmKg: number) 
   await batch.commit()
 }
 
+// El perfil guarda el último peso (para ejercicios con lastre): solo se
+// actualiza si el registro es de hoy, no al cargar días anteriores.
 export async function logBodyweight(uid: string, kg: number, dateKey = localDateKey()) {
   const batch = writeBatch(db)
   batch.set(doc(bodyweightCol(uid), dateKey), { kg })
-  batch.update(userRef(uid), { bodyweightKg: kg })
+  if (dateKey >= localDateKey()) batch.update(userRef(uid), { bodyweightKg: kg })
   await batch.commit()
 }
 

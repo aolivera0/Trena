@@ -23,6 +23,7 @@ export const entriesCol = (athleteId: string, sessionId: string) =>
 export const entryRef = (athleteId: string, sessionId: string, entryId: string) =>
   doc(db, 'users', athleteId, 'sessions', sessionId, 'entries', entryId)
 export const exerciseStatsCol = (athleteId: string) => collection(db, 'users', athleteId, 'exerciseStats')
+export const exerciseLogsCol = (athleteId: string) => collection(db, 'users', athleteId, 'exerciseLogs')
 
 // Todas las funciones devuelven al instante: Firestore aplica el cambio en la
 // caché local (funciona sin conexión) y lo sube en segundo plano.
@@ -101,6 +102,9 @@ export function finishSession(
   })
   for (const [exerciseId, stats] of result.stats) {
     batch.set(doc(exerciseStatsCol(athleteId), exerciseId), stats)
+  }
+  for (const log of result.logs) {
+    batch.set(doc(exerciseLogsCol(athleteId), `${sessionId}_${log.exerciseId}`), log)
   }
   for (const rm of result.summary.rmUpdates) {
     const exercise = entries.find((e) => e.exercise.id === rm.exerciseId)!.exercise

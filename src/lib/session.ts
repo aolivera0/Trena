@@ -7,6 +7,7 @@ import { rirToRpe } from './strength/rpe'
 import type {
   Day,
   ExerciseRef,
+  ExerciseLog,
   ExerciseStats,
   PrType,
   SessionEntry,
@@ -155,19 +156,28 @@ function doneSets(entry: SessionEntry, bodyweightKg: number): DoneSet[] {
 export type FinishResult = {
   summary: SessionSummary
   stats: Map<string, ExerciseStats>
+  logs: ExerciseLog[]
 }
 
 export function computeFinish(
   entries: SessionEntry[],
   prevStats: Map<string, ExerciseStats>,
   rmKgById: Map<string, number>,
-  opts: { bodyweightKg: number; formula: E1rmFormula; startedAt: number; finishedAt: number; sessionId: string },
+  opts: {
+    bodyweightKg: number
+    formula: E1rmFormula
+    startedAt: number
+    finishedAt: number
+    sessionId: string
+    sessionName: string
+  },
 ): FinishResult {
   let tonnageKg = 0
   let setsDone = 0
   const prs: SessionPr[] = []
   const rmUpdates: SessionSummary['rmUpdates'] = []
   const stats = new Map<string, ExerciseStats>()
+  const logs: ExerciseLog[] = []
 
   // Un mismo ejercicio puede aparecer en varias entradas: se agrupan
   const byExercise = new Map<string, { exercise: ExerciseRef; sets: DoneSet[] }>()
@@ -181,7 +191,8 @@ export function computeFinish(
 
   for (const [exerciseId, { exercise, sets }] of byExercise) {
     setsDone += sets.length
-    tonnageKg += sets.reduce((sum, s) => sum + s.load * s.reps, 0)
+    const exerciseTonnage = sets.reduce((sum, s) => sum + s.load * s.reps, 0)
+    tonnageKg += exerciseTonnage
 
     const best = (fn: (s: DoneSet) => number | null) =>
       sets.reduce<{ value: number; set: DoneSet } | null>((acc, s) => {
@@ -213,6 +224,24 @@ export function computeFinish(
       }
     }
 
+    logs.push({
+      exerciseId,
+      exercise,
+      sessionId: opts.sessionId,
+      sessionName: opts.sessionName,
+      date: opts.finishedAt,
+      sets: sets.map((s) => ({
+        kind: s.kind,
+        weightKg: s.weightKg,
+        loadKg: s.load,
+        reps: s.reps,
+        rpe: s.rpe,
+        e1rmKg: setE1rm({ load: s.load, reps: s.reps, rpe: s.rpe }, opts.formula),
+      })),
+      bestE1rmKg: bestE1rm?.value ?? null,
+      tonnageKg: exerciseTonnage,
+    })
+
     stats.set(exerciseId, {
       exercise,
       lastSets: sets.map((s) => ({ kind: s.kind, weightKg: s.weightKg, reps: s.reps, rpe: s.rpe })),
@@ -233,5 +262,6 @@ export function computeFinish(
       rmUpdates,
     },
     stats,
+    logs,
   }
 }

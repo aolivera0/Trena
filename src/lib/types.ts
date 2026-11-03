@@ -176,3 +176,15 @@ export type ExerciseStats = {
   bestSetVolumeKg: number
   bestE1rmKg: number
 }
+
+// Una ejecución de un ejercicio en una sesión terminada (historial por ejercicio, R-4)
+export type ExerciseLog = {
+  exerciseId: string
+  exercise: ExerciseRef
+  sessionId: string
+  sessionName: string
+  date: number
+  sets: { kind: SessionSet['kind']; weightKg: number; loadKg: number; reps: number; rpe: number | null; e1rmKg: number | null }[]
+  bestE1rmKg: number | null
+  tonnageKg: number
+}
