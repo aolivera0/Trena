@@ -1,6 +1,6 @@
 import { FORMULA_LABELS, type E1rmFormula } from '../lib/strength/e1rm'
 import type { Prefs } from '../lib/types'
-import { Field, Segmented } from './ui'
+import { Field, Segmented, Toggle } from './ui'
 
 export function PrefsFields({ prefs, onChange }: { prefs: Prefs; onChange: (prefs: Prefs) => void }) {
   const lb = prefs.unit === 'lb'
@@ -39,6 +39,11 @@ export function PrefsFields({ prefs, onChange }: { prefs: Prefs; onChange: (pref
           onChange={(e1rmFormula) => onChange({ ...prefs, e1rmFormula })}
         />
       </Field>
+      <Toggle
+        label="Iniciar el descanso al completar una serie"
+        checked={prefs.autoRest ?? false}
+        onChange={(autoRest) => onChange({ ...prefs, autoRest })}
+      />
     </div>
   )
 }

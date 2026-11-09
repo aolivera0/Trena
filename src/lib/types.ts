@@ -7,6 +7,7 @@ export type Prefs = {
   unit: Unit
   roundingKg: RoundingKg
   e1rmFormula: E1rmFormula
+  autoRest?: boolean // iniciar el descanso al marcar una serie (por defecto no)
 }
 
 export type UserProfile = {
@@ -175,6 +176,7 @@ export type ExerciseStats = {
   bestWeightKg: number // carga total
   bestSetVolumeKg: number
   bestE1rmKg: number
+  timesDone?: number // sesiones en las que se hizo; falta en datos previos al contador
 }
 
 // Una ejecución de un ejercicio en una sesión terminada (historial por ejercicio, R-4)

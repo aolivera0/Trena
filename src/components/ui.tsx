@@ -7,6 +7,7 @@ import {
   type ReactNode,
   type SelectHTMLAttributes,
 } from 'react'
+import { useVisualViewport } from '../hooks/useVisualViewport'
 import { onToast, type Toast } from '../lib/feedback'
 import { kgToUnit, unitToKg, type Unit } from '../lib/strength/units'
 
@@ -307,6 +308,62 @@ export function Sheet({
           </IconButton>
         </div>
         <div className="overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+// Vista a pantalla completa pegada arriba: la barra superior (título y
+// `toolbar`, p. ej. un buscador) queda fija y solo el contenido se desplaza.
+// Su alto sigue al área visible, así el teclado nunca tapa la barra.
+export function FullScreenSheet({
+  open,
+  onClose,
+  title,
+  toolbar,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  title: string
+  toolbar?: ReactNode
+  children: ReactNode
+}) {
+  const vp = useVisualViewport(open)
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [open, onClose])
+
+  if (!open) return null
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="fixed inset-x-0 z-50 flex justify-center bg-bg"
+      style={{ top: vp.offsetTop, height: vp.height }}
+    >
+      <div className="flex h-full w-full max-w-xl flex-col">
+        <div className="shrink-0 space-y-3 border-b border-border px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">{title}</h2>
+            <IconButton label="Cerrar" onClick={onClose} className="-mr-2">
+              <X size={20} />
+            </IconButton>
+          </div>
+          {toolbar}
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {children}
+        </div>
       </div>
     </div>
   )

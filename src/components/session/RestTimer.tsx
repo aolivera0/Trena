@@ -46,11 +46,11 @@ export function RestTimer({ athleteId, sessionId, timer }: { athleteId: string; 
         <span className={`flex-1 text-center text-2xl font-bold tabular ${remaining <= 3 ? 'text-warning' : ''}`}>
           {formatClock(remaining)}
         </span>
-        <button type="button" onClick={() => adjust(-15)} className="h-9 rounded-lg bg-surface-2 px-3 text-sm">
-          −15
+        <button type="button" onClick={() => adjust(-30)} className="h-9 rounded-lg bg-surface-2 px-3 text-sm">
+          −30
         </button>
-        <button type="button" onClick={() => adjust(15)} className="h-9 rounded-lg bg-surface-2 px-3 text-sm">
-          +15
+        <button type="button" onClick={() => adjust(30)} className="h-9 rounded-lg bg-surface-2 px-3 text-sm">
+          +30
         </button>
         <button
           type="button"

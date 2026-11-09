@@ -1,13 +1,15 @@
-import { ChevronLeft, Plus } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { ChevronLeft, Plus, Timer } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { useProfile } from '../auth/AuthProvider'
 import { ExercisePicker } from '../components/ExercisePicker'
+import { ExerciseModal } from '../components/exercise/ExerciseTabs'
 import { EntryCard } from '../components/session/EntryCard'
 import { RestTimer } from '../components/session/RestTimer'
 import { SessionSummaryView } from '../components/session/SessionSummaryView'
 import { Button, FullScreenSpinner, Sheet, WeightInput } from '../components/ui'
 import { useAthlete } from '../hooks/useAthlete'
+import { useExerciseStats } from '../hooks/useExerciseStats'
 import { useDoc, useQuery } from '../hooks/useFirestore'
 import { formatClock, useNow } from '../hooks/useNow'
 import { computeFinish, sortedSets } from '../lib/session'
@@ -15,12 +17,16 @@ import {
   addEntry,
   discardSession,
   entriesCol,
-  exerciseStatsCol,
   finishSession,
   sessionRef,
   updateSession,
 } from '../lib/sessionDb'
-import type { ExerciseStats, Session, SessionEntry } from '../lib/types'
+import { unlockAudio } from '../lib/sound'
+import type { ExerciseRef, Session, SessionEntry } from '../lib/types'
+
+const DEFAULT_REST_SEC = 120
+const REST_PRESETS = [60, 90, 120, 180, 240, 300]
+const LONG_PRESS_MS = 450
 
 export function SessionPage() {
   const { athleteId = '', sessionId = '' } = useParams()
@@ -32,11 +38,12 @@ export function SessionPage() {
   const { data: session, loading: sessionLoading } = useDoc<Session>(sRef)
   const eQuery = useMemo(() => entriesCol(athleteId, sessionId), [athleteId, sessionId])
   const { data: rawEntries } = useQuery<SessionEntry>(eQuery, `entries:${athleteId}/${sessionId}`)
-  const statsQuery = useMemo(() => exerciseStatsCol(athleteId), [athleteId])
-  const { data: statsList } = useQuery<ExerciseStats>(statsQuery, `stats:${athleteId}`)
+  const { data: statsList } = useExerciseStats(athleteId)
 
   const [picking, setPicking] = useState(false)
   const [confirmFinish, setConfirmFinish] = useState(false)
+  const [choosingRest, setChoosingRest] = useState(false)
+  const [openExercise, setOpenExercise] = useState<ExerciseRef | null>(null)
   const inProgress = session?.status === 'IN_PROGRESS'
   const now = useNow(1000, inProgress)
 
@@ -53,8 +60,20 @@ export function SessionPage() {
   const usesBodyweight = entries.some((e) => e.exercise.addsBodyweight)
   const pendingSets = entries.reduce((n, e) => n + sortedSets(e).filter(([, s]) => !s.done).length, 0)
 
+  // Descanso sugerido: el de la última serie completada (o 2:00)
+  const lastDone = entries
+    .flatMap((e) => Object.values(e.sets))
+    .filter((s) => s.done && s.completedAt != null)
+    .sort((a, b) => b.completedAt! - a.completedAt!)[0]
+  const suggestedRest = lastDone?.restSec || DEFAULT_REST_SEC
+
   function startRest(restSec: number) {
     if (restSec > 0) updateSession(athleteId, sessionId, { restTimer: { endsAt: Date.now() + restSec * 1000, durationSec: restSec } })
+  }
+
+  // Por defecto el descanso se inicia a mano; en Ajustes se puede automatizar
+  function onSetDone(restSec: number) {
+    if (profile.prefs.autoRest) startRest(restSec)
   }
 
   function finish() {
@@ -90,6 +109,9 @@ export function SessionPage() {
           <ChevronLeft size={22} />
         </Link>
         <span className="flex-1 text-center text-lg font-semibold tabular">{formatClock((now - session.startedAt) / 1000)}</span>
+        {!session.restTimer && (
+          <RestButton seconds={suggestedRest} onStart={startRest} onChoose={() => setChoosingRest(true)} />
+        )}
         <Button size="sm" variant="primary" onClick={() => setConfirmFinish(true)}>
           Finalizar
         </Button>
@@ -129,7 +151,8 @@ export function SessionPage() {
           rmKg={rmById.get(entry.exercise.id)?.e1rmKg ?? null}
           bodyweightKg={session.bodyweightKg}
           stats={statsById.get(entry.exercise.id)}
-          onSetDone={startRest}
+          onSetDone={onSetDone}
+          onOpenExercise={() => setOpenExercise(entry.exercise)}
         />
       ))}
 
@@ -143,10 +166,45 @@ export function SessionPage() {
       {session.restTimer && <RestTimer athleteId={athleteId} sessionId={sessionId} timer={session.restTimer} />}
 
       <ExercisePicker
+        athleteId={athleteId}
         open={picking}
         onClose={() => setPicking(false)}
         onPick={(ex) => addEntry(athleteId, sessionId, ex, (entries.at(-1)?.order ?? -1) + 1)}
       />
+
+      <ExerciseModal
+        onClose={() => setOpenExercise(null)}
+        ctx={
+          openExercise && {
+            athleteId,
+            exercise: openExercise,
+            bodyweightKg: session.bodyweightKg,
+            formula: athlete.prefs.e1rmFormula,
+            rm: rmById.get(openExercise.id),
+            stats: statsById.get(openExercise.id),
+            athleteCoachId: athlete.coachId,
+            excludeSessionId: sessionId,
+          }
+        }
+      />
+
+      <Sheet open={choosingRest} onClose={() => setChoosingRest(false)} title="Iniciar descanso">
+        <div className="grid grid-cols-3 gap-2">
+          {REST_PRESETS.map((sec) => (
+            <Button
+              key={sec}
+              variant={sec === suggestedRest ? 'primary' : 'secondary'}
+              onClick={() => {
+                unlockAudio()
+                startRest(sec)
+                setChoosingRest(false)
+              }}
+            >
+              {formatClock(sec)}
+            </Button>
+          ))}
+        </div>
+      </Sheet>
 
       <Sheet open={confirmFinish} onClose={() => setConfirmFinish(false)} title="Finalizar entrenamiento">
         <div className="space-y-4">
@@ -161,5 +219,44 @@ export function SessionPage() {
         </div>
       </Sheet>
     </div>
+  )
+}
+
+// Toque: inicia el descanso sugerido. Mantener pulsado: elegir duración.
+function RestButton({ seconds, onStart, onChoose }: { seconds: number; onStart: (sec: number) => void; onChoose: () => void }) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressed = useRef(false)
+
+  function down() {
+    longPressed.current = false
+    timer.current = setTimeout(() => {
+      longPressed.current = true
+      onChoose()
+    }, LONG_PRESS_MS)
+  }
+
+  function up() {
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+  }
+
+  return (
+    <button
+      type="button"
+      onPointerDown={down}
+      onPointerUp={up}
+      onPointerLeave={up}
+      onContextMenu={(e) => e.preventDefault()}
+      onClick={() => {
+        if (longPressed.current) return
+        unlockAudio()
+        onStart(seconds)
+      }}
+      aria-label={`Iniciar descanso de ${formatClock(seconds)} (mantén pulsado para elegir)`}
+      className="flex h-8 select-none items-center gap-1.5 rounded-lg bg-surface-2 px-2.5 text-sm text-text hover:bg-border"
+    >
+      <Timer size={16} className="text-accent" />
+      <span className="tabular">{formatClock(seconds)}</span>
+    </button>
   )
 }

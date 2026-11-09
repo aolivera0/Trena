@@ -250,6 +250,9 @@ export function computeFinish(
       bestWeightKg: Math.max(prev?.bestWeightKg ?? 0, bestWeight.value),
       bestSetVolumeKg: Math.max(prev?.bestSetVolumeKg ?? 0, bestVolume.value),
       bestE1rmKg: Math.max(prev?.bestE1rmKg ?? 0, bestE1rm?.value ?? 0),
+      // Sin contador previo (datos anteriores al contador) se deja sin campo:
+      // la migración lo calcula contando todas las sesiones, incluida esta.
+      ...(prev && prev.timesDone == null ? {} : { timesDone: (prev?.timesDone ?? 0) + 1 }),
     })
   }
 
@@ -264,4 +267,17 @@ export function computeFinish(
     stats,
     logs,
   }
+}
+
+// Veces que se hizo cada ejercicio: una por sesión con al menos una serie hecha
+// (aunque aparezca en varias entradas de la misma sesión).
+export function countExerciseSessions(sessions: SessionEntry[][]): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const entries of sessions) {
+    const done = new Set(
+      entries.filter((e) => Object.values(e.sets).some((s) => s.done)).map((e) => e.exercise.id),
+    )
+    for (const id of done) counts.set(id, (counts.get(id) ?? 0) + 1)
+  }
+  return counts
 }

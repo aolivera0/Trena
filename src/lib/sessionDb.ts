@@ -1,5 +1,7 @@
 import {
   collection,
+  query,
+  where,
   deleteDoc,
   deleteField,
   doc,
@@ -13,7 +15,7 @@ import { rmHistoryCol, rmsCol } from './db'
 import { track } from './feedback'
 import { db } from './firebase'
 import { newId } from './ids'
-import { newEntry, type EntryWithId, type FinishResult } from './session'
+import { countExerciseSessions, newEntry, type EntryWithId, type FinishResult } from './session'
 import type { ExerciseRef, Session, SessionEntry, SessionSet } from './types'
 
 export const sessionsCol = (athleteId: string) => collection(db, 'users', athleteId, 'sessions')
@@ -124,4 +126,19 @@ export function finishSession(
     })
   }
   track(batch.commit(), 'No se pudo guardar el resumen')
+}
+
+// Migración única: calcula el contador de veces de los ejercicios cuyas
+// estadísticas son anteriores al contador, contando las sesiones terminadas.
+export async function backfillTimesDone(athleteId: string, missing: string[]) {
+  const sessions = await getDocs(query(sessionsCol(athleteId), where('status', '==', 'FINISHED')))
+  const perSession = await Promise.all(
+    sessions.docs.map(async (s) => (await getDocs(entriesCol(athleteId, s.id))).docs.map((d) => d.data() as SessionEntry)),
+  )
+  const counts = countExerciseSessions(perSession)
+  const batch = writeBatch(db)
+  for (const id of missing) {
+    batch.update(doc(exerciseStatsCol(athleteId), id), { timesDone: Math.max(1, counts.get(id) ?? 0) })
+  }
+  track(batch.commit(), 'No se pudo actualizar el contador de ejercicios')
 }

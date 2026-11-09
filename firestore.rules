@@ -160,6 +160,24 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.coachId == request.auth.uid;
     }
 
+    // ---------- Guías de ejercicios ----------
+    // Id: <ownerId>__<exerciseId>. Las ve el autor y los atletas que entrena.
+
+    match /exerciseGuides/{guideId} {
+      // Se decide por el id (no por resource) para poder suscribirse a una
+      // guía que aún no existe
+      allow read: if signedIn() && (
+          guideId.split('__')[0] == request.auth.uid
+          || guideId.split('__')[0] == get(userDoc(request.auth.uid)).data.coachId
+        );
+      allow create, update: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && guideId == request.auth.uid + '__' + request.resource.data.exerciseId
+        && request.resource.data.text is string && request.resource.data.text.size() <= 5000
+        && request.resource.data.videoUrl is string && request.resource.data.videoUrl.size() <= 500;
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
     // ---------- Ejercicios propios ----------
 
     match /exercises/{exerciseId} {

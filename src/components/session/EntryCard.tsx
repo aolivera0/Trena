@@ -32,6 +32,7 @@ export function EntryCard({
   bodyweightKg,
   stats,
   onSetDone,
+  onOpenExercise,
 }: {
   athleteId: string
   sessionId: string
@@ -40,6 +41,7 @@ export function EntryCard({
   bodyweightKg: number
   stats: ExerciseStats | undefined
   onSetDone: (restSec: number) => void
+  onOpenExercise: () => void
 }) {
   const { profile } = useProfile()
   const { unit, roundingKg } = profile.prefs
@@ -115,11 +117,18 @@ export function EntryCard({
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-surface">
       <div className="flex items-center gap-3 p-3 pb-2">
-        <ExerciseThumb slug={entry.exercise.slug} size={40} />
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate font-semibold text-accent">{entry.exercise.name}</h2>
-          {entry.exercise.variant && <p className="truncate text-sm text-muted">{entry.exercise.variant}</p>}
-        </div>
+        <button
+          type="button"
+          onClick={onOpenExercise}
+          className="-m-1 flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1 text-left hover:bg-surface-2"
+          aria-label={`Historial y tutorial de ${exerciseLabel(entry.exercise)}`}
+        >
+          <ExerciseThumb slug={entry.exercise.slug} size={40} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-semibold text-accent">{entry.exercise.name}</span>
+            {entry.exercise.variant && <span className="block truncate text-sm text-muted">{entry.exercise.variant}</span>}
+          </span>
+        </button>
         <IconButton
           label="Quitar ejercicio"
           onClick={() => confirm(`¿Quitar ${exerciseLabel(entry.exercise)} de la sesión?`) && removeEntry(athleteId, sessionId, entry.id)}
@@ -185,9 +194,20 @@ export function EntryCard({
               >
                 {label}
               </button>
-              <span className="truncate text-xs text-muted tabular">
-                {prev ? `${addsBodyweight ? '+' : ''}${Number(kgToUnit(prev.weightKg, unit).toFixed(1))} × ${prev.reps}` : '—'}
-              </span>
+              {prev ? (
+                // Tocar la marca anterior la copia en esta serie (sin marcarla como hecha)
+                <button
+                  type="button"
+                  onClick={() => write({ [`${p}.weightKg`]: prev.weightKg, [`${p}.reps`]: prev.reps }, true)}
+                  className="-mx-1 h-9 truncate rounded-md px-1 text-left text-xs text-muted tabular hover:bg-surface-2 hover:text-text active:bg-surface-2"
+                  aria-label={`Usar la marca anterior en la serie ${label}`}
+                >
+                  {addsBodyweight ? '+' : ''}
+                  {Number(kgToUnit(prev.weightKg, unit).toFixed(1))} × {prev.reps}
+                </button>
+              ) : (
+                <span className="text-xs text-muted">—</span>
+              )}
               <NumberInput
                 value={set.weightKg == null ? null : Number(kgToUnit(set.weightKg, unit).toFixed(2))}
                 onChange={(v) => write({ [`${p}.weightKg`]: v == null ? null : unitToKg(v, unit) })}

@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import { useProfile } from '../auth/AuthProvider'
 import { BodyweightPanel } from '../components/BodyweightPanel'
@@ -7,11 +7,9 @@ import { ExerciseThumb } from '../components/ExercisePicker'
 import { SessionList } from '../components/session/SessionList'
 import { EmptyState, FullScreenSpinner, PageHeader, Segmented, Spinner } from '../components/ui'
 import { useAthlete } from '../hooks/useAthlete'
-import { useQuery } from '../hooks/useFirestore'
+import { useExerciseStats } from '../hooks/useExerciseStats'
 import { exerciseLabel } from '../lib/exercises'
 import { formatWeight } from '../lib/format'
-import { exerciseStatsCol } from '../lib/sessionDb'
-import type { ExerciseStats } from '../lib/types'
 
 type Tab = 'sessions' | 'exercises' | 'bodyweight'
 
@@ -46,8 +44,7 @@ export function HistoryPage() {
 
 function ExerciseList({ athleteId }: { athleteId: string }) {
   const { profile } = useProfile()
-  const q = useMemo(() => exerciseStatsCol(athleteId), [athleteId])
-  const { data: stats, loading } = useQuery<ExerciseStats>(q, `stats:${athleteId}`)
+  const { data: stats, loading } = useExerciseStats(athleteId)
   const sorted = [...stats].sort((a, b) => b.lastDate - a.lastDate)
 
   if (loading) return <Spinner />
@@ -62,6 +59,7 @@ function ExerciseList({ athleteId }: { athleteId: string }) {
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{exerciseLabel(s.exercise)}</span>
               <span className="block text-xs text-muted">
+                {s.timesDone != null && `${s.timesDone} ${s.timesDone === 1 ? 'vez' : 'veces'} · `}
                 Último: {new Date(s.lastDate).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
               </span>
             </span>

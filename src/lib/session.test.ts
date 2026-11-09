@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeFinish, expandDay, liveSuggestion, sortedSets, type EntryWithId } from './session'
+import { computeFinish, countExerciseSessions, expandDay, liveSuggestion, sortedSets, type EntryWithId } from './session'
 import type { Day, ExerciseRef, ExerciseStats, SessionSet } from './types'
 
 const squat: ExerciseRef = { id: 'wg:squat', name: 'Sentadilla', variant: null, slug: 'squat', addsBodyweight: false }
@@ -175,5 +175,46 @@ describe('finalizar', () => {
     const e = entry(squat, [{ done: true, weightKg: 100, reps: 3 }])
     const { stats } = computeFinish([e], new Map([[squat.id, prev]]), new Map(), opts)
     expect(stats.get(squat.id)).toMatchObject({ bestWeightKg: 200, bestSetVolumeKg: 900, bestE1rmKg: 210 })
+  })
+})
+
+describe('contador de veces', () => {
+  const opts = {
+    bodyweightKg: 80,
+    formula: 'epley' as const,
+    startedAt: 0,
+    finishedAt: 1,
+    sessionId: 'S',
+    sessionName: 'Día 1',
+  }
+  const prev = (timesDone?: number): ExerciseStats => ({
+    exercise: squat,
+    lastSets: [],
+    lastSessionId: 'old',
+    lastDate: 0,
+    bestWeightKg: 0,
+    bestSetVolumeKg: 0,
+    bestE1rmKg: 0,
+    ...(timesDone != null ? { timesDone } : {}),
+  })
+  const done = entry(squat, [{ done: true, weightKg: 100, reps: 5 }])
+
+  it('la primera vez cuenta 1 y luego suma', () => {
+    expect(computeFinish([done], new Map(), new Map(), opts).stats.get(squat.id)?.timesDone).toBe(1)
+    expect(computeFinish([done], new Map([[squat.id, prev(4)]]), new Map(), opts).stats.get(squat.id)?.timesDone).toBe(5)
+  })
+
+  it('sin contador previo deja el campo fuera para la migración', () => {
+    const stats = computeFinish([done], new Map([[squat.id, prev()]]), new Map(), opts).stats.get(squat.id)!
+    expect('timesDone' in stats).toBe(false)
+  })
+
+  it('la migración cuenta una vez por sesión y solo con series hechas', () => {
+    const counts = countExerciseSessions([
+      [done, { ...done }, entry(pullup, [{ done: false, weightKg: 10, reps: 5 }])],
+      [done, entry(pullup, [{ done: true, weightKg: 10, reps: 5 }])],
+    ])
+    expect(counts.get(squat.id)).toBe(2)
+    expect(counts.get(pullup.id)).toBe(1)
   })
 })

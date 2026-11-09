@@ -7,6 +7,7 @@ export type CatalogExercise = {
   nameEs: string | null
   equipment: string
   muscle: string
+  secondary: string[]
   type: string
   addsBodyweight: boolean
   hasImages: boolean
@@ -77,3 +78,52 @@ export function exerciseImageUrl(slug: string | null, frame: 1 | 2 | 3 = 1): str
   if (!slug || !bySlug.get(slug)?.hasImages) return null
   return `${ASSET_BASE}/${slug}/frame-${frame}.png`
 }
+
+const MUSCLES_ES: Record<string, string> = {
+  Chest: 'Pecho',
+  Shoulders: 'Hombros',
+  'Rear Delts': 'Deltoides posterior',
+  'Upper Back': 'Espalda alta',
+  'Posterior Chain': 'Cadena posterior',
+  Hamstrings: 'Isquiotibiales',
+  Back: 'Espalda',
+  Lats: 'Dorsales',
+  Biceps: 'Bíceps',
+  Quads: 'Cuádriceps',
+  Glutes: 'Glúteos',
+  Calves: 'Gemelos',
+  Forearms: 'Antebrazos',
+  Triceps: 'Tríceps',
+  Core: 'Core',
+  Legs: 'Piernas',
+  'Lower Back': 'Zona lumbar',
+  Adductors: 'Aductores',
+  Mobility: 'Movilidad',
+  Hips: 'Caderas',
+  Cardio: 'Cardio',
+  Groin: 'Ingle',
+  Grip: 'Agarre',
+}
+
+const EQUIPMENT_ES: Record<string, string> = {
+  Barbell: 'Barra',
+  Dumbbell: 'Mancuernas',
+  Machine: 'Máquina',
+  Cable: 'Polea',
+  Bodyweight: 'Peso corporal',
+  Cardio: 'Cardio',
+  Plate: 'Disco',
+  Kettlebell: 'Kettlebell',
+  'Pull-up Bar': 'Barra de dominadas',
+  Bench: 'Banco',
+  Wall: 'Pared',
+  Chair: 'Silla',
+  Doorway: 'Marco de puerta',
+  Towel: 'Toalla',
+  Box: 'Cajón',
+  'Stability Ball': 'Fitball',
+  'Resistance Band': 'Banda elástica',
+}
+
+export const muscleEs = (m: string) => MUSCLES_ES[m] ?? m
+export const equipmentEs = (e: string) => EQUIPMENT_ES[e] ?? e

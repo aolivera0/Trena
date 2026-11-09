@@ -2,6 +2,7 @@ import { query, where } from 'firebase/firestore'
 import { Dumbbell, GitBranch, Plus, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useProfile } from '../auth/AuthProvider'
+import { useExerciseStats } from '../hooks/useExerciseStats'
 import { useQuery } from '../hooks/useFirestore'
 import { createCustomExercise, exercisesCol } from '../lib/db'
 import {
@@ -9,12 +10,13 @@ import {
   customRef,
   exerciseImageUrl,
   exerciseLabel,
+  getCatalogExercise,
   normalize,
   searchCatalog,
   type CatalogExercise,
 } from '../lib/exercises'
 import type { CustomExercise, ExerciseRef } from '../lib/types'
-import { Button, Field, Input, Sheet, Toggle } from './ui'
+import { Button, Field, FullScreenSheet, Input, Toggle } from './ui'
 
 const MAX_RESULTS = 60
 
@@ -48,11 +50,22 @@ export function useCustomExercises() {
 
 type Draft = { name: string; variant: string; slug: string | null; addsBodyweight: boolean }
 
+function matches(text: string, q: string) {
+  if (!q) return true
+  const hay = normalize(text)
+  return q.split(/\s+/).every((t) => hay.includes(t))
+}
+
+// Selector de ejercicios a pantalla completa con el buscador fijo arriba.
+// Primero los que el atleta ya hizo (más veces primero), luego los propios
+// y el catálogo.
 export function ExercisePicker({
+  athleteId,
   open,
   onClose,
   onPick,
 }: {
+  athleteId: string // de quién es el historial que ordena la lista
   open: boolean
   onClose: () => void
   onPick: (ref: ExerciseRef) => void
@@ -61,10 +74,20 @@ export function ExercisePicker({
   const [search, setSearch] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
   const { data: customs } = useCustomExercises()
+  const { data: stats } = useExerciseStats(athleteId)
 
   const q = normalize(search)
-  const customMatches = customs.filter((c) => normalize(`${c.name} ${c.variant ?? ''}`).includes(q))
-  const catalogMatches = searchCatalog(search)
+  const done = stats
+    .filter((s) => {
+      const en = s.exercise.slug ? (getCatalogExercise(s.exercise.slug)?.name ?? '') : ''
+      return matches(`${s.exercise.name} ${s.exercise.variant ?? ''} ${en}`, q)
+    })
+    .sort((a, b) => (b.timesDone ?? 0) - (a.timesDone ?? 0) || b.lastDate - a.lastDate)
+  const doneIds = new Set(stats.map((s) => s.id))
+  const customMatches = customs.filter(
+    (c) => !doneIds.has(`c:${c.id}`) && matches(`${c.name} ${c.variant ?? ''}`, q),
+  )
+  const catalogMatches = searchCatalog(search).filter((e) => !doneIds.has(`wg:${e.slug}`))
 
   function pick(ref: ExerciseRef) {
     onPick(ref)
@@ -93,9 +116,12 @@ export function ExercisePicker({
     pick({ id: `c:${id}`, ...data })
   }
 
-  return (
-    <Sheet open={open} onClose={close} title={draft ? 'Nuevo ejercicio' : 'Elegir ejercicio'}>
-      {draft ? (
+  const sectionTitle = 'px-1 pb-1 text-xs font-medium uppercase tracking-wide text-muted'
+  const row = 'flex w-full min-w-0 items-center gap-3 rounded-lg p-2 text-left hover:bg-surface-2'
+
+  if (draft) {
+    return (
+      <FullScreenSheet open={open} onClose={close} title="Nuevo ejercicio">
         <div className="space-y-4">
           {draft.slug && (
             <div className="flex items-center gap-3">
@@ -135,83 +161,101 @@ export function ExercisePicker({
             </Button>
           </div>
         </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="relative">
-            <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar: sentadilla, chest, dumbbell…"
-              className="pl-10"
-              autoFocus
-            />
-          </div>
+      </FullScreenSheet>
+    )
+  }
 
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setDraft({ name: search, variant: '', slug: null, addsBodyweight: false })}
-          >
-            <Plus size={16} /> Crear ejercicio propio
-          </Button>
+  return (
+    <FullScreenSheet
+      open={open}
+      onClose={close}
+      title="Elegir ejercicio"
+      toolbar={
+        <div className="relative">
+          <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar: sentadilla, chest, dumbbell…"
+            className="pl-10"
+            type="search"
+            enterKeyHint="search"
+            autoFocus
+          />
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <Button size="sm" variant="ghost" onClick={() => setDraft({ name: search, variant: '', slug: null, addsBodyweight: false })}>
+          <Plus size={16} /> Crear ejercicio propio
+        </Button>
 
-          {customMatches.length > 0 && (
-            <ul className="space-y-1">
-              <li className="px-1 text-xs font-medium uppercase tracking-wide text-muted">Propios</li>
-              {customMatches.map((c) => (
-                <li key={c.id}>
-                  <button
-                    type="button"
-                    onClick={() => pick(customRef(c))}
-                    className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-surface-2"
-                  >
-                    <ExerciseThumb slug={c.slug} />
-                    <span className="min-w-0 flex-1 truncate">{exerciseLabel(c)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
+        {done.length > 0 && (
           <ul className="space-y-1">
-            <li className="px-1 text-xs font-medium uppercase tracking-wide text-muted">Catálogo</li>
-            {catalogMatches.slice(0, MAX_RESULTS).map((e) => (
-              <li key={e.slug} className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => pick(catalogRef(e))}
-                  className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-2 text-left hover:bg-surface-2"
-                >
-                  <ExerciseThumb slug={e.slug} />
-                  <span className="min-w-0">
-                    <span className="block truncate">{e.nameEs ?? e.name}</span>
-                    <span className="block truncate text-xs text-muted">
-                      {e.nameEs ? `${e.name} · ` : ''}
-                      {e.equipment} · {e.muscle}
+            <li className={sectionTitle}>Tus ejercicios</li>
+            {done.map((s) => (
+              <li key={s.id}>
+                <button type="button" onClick={() => pick(s.exercise)} className={row}>
+                  <ExerciseThumb slug={s.exercise.slug} />
+                  <span className="min-w-0 flex-1 truncate">{exerciseLabel(s.exercise)}</span>
+                  {s.timesDone != null && (
+                    <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent tabular">
+                      ×{s.timesDone}
                     </span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => startVariant(e)}
-                  className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-text"
-                  aria-label={`Crear variante de ${e.nameEs ?? e.name}`}
-                  title="Crear variante"
-                >
-                  <GitBranch size={16} />
+                  )}
                 </button>
               </li>
             ))}
-            {catalogMatches.length > MAX_RESULTS && (
-              <li className="px-2 py-1 text-xs text-muted">
-                {catalogMatches.length - MAX_RESULTS} más: afina la búsqueda.
-              </li>
-            )}
-            {catalogMatches.length === 0 && <li className="px-2 py-1 text-sm text-muted">Sin resultados.</li>}
           </ul>
-        </div>
-      )}
-    </Sheet>
+        )}
+
+        {customMatches.length > 0 && (
+          <ul className="space-y-1">
+            <li className={sectionTitle}>Propios</li>
+            {customMatches.map((c) => (
+              <li key={c.id}>
+                <button type="button" onClick={() => pick(customRef(c))} className={row}>
+                  <ExerciseThumb slug={c.slug} />
+                  <span className="min-w-0 flex-1 truncate">{exerciseLabel(c)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <ul className="space-y-1">
+          <li className={sectionTitle}>Catálogo</li>
+          {catalogMatches.slice(0, MAX_RESULTS).map((e) => (
+            <li key={e.slug} className="flex items-center gap-1">
+              <button type="button" onClick={() => pick(catalogRef(e))} className={`${row} flex-1`}>
+                <ExerciseThumb slug={e.slug} />
+                <span className="min-w-0">
+                  <span className="block truncate">{e.nameEs ?? e.name}</span>
+                  <span className="block truncate text-xs text-muted">
+                    {e.nameEs ? `${e.name} · ` : ''}
+                    {e.equipment} · {e.muscle}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => startVariant(e)}
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-text"
+                aria-label={`Crear variante de ${e.nameEs ?? e.name}`}
+                title="Crear variante"
+              >
+                <GitBranch size={16} />
+              </button>
+            </li>
+          ))}
+          {catalogMatches.length > MAX_RESULTS && (
+            <li className="px-2 py-1 text-xs text-muted">{catalogMatches.length - MAX_RESULTS} más: afina la búsqueda.</li>
+          )}
+          {catalogMatches.length === 0 && done.length === 0 && customMatches.length === 0 && (
+            <li className="px-2 py-1 text-sm text-muted">Sin resultados.</li>
+          )}
+        </ul>
+      </div>
+    </FullScreenSheet>
   )
 }

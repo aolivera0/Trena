@@ -92,7 +92,7 @@ export function RmList({
 
       {editable && (
         <>
-          <ExercisePicker open={picking} onClose={() => setPicking(false)} onPick={open} />
+          <ExercisePicker athleteId={athleteId} open={picking} onClose={() => setPicking(false)} onPick={open} />
           <Sheet open={editing != null} onClose={() => setEditing(null)} title={editing ? exerciseLabel(editing) : ''}>
             {editing && (
               <div className="space-y-4">

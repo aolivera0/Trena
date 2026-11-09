@@ -200,7 +200,7 @@ export function WeekCard({
         </div>
       )}
 
-      {canEdit && <ExercisePicker open={picking} onClose={() => setPicking(false)} onPick={addExercise} />}
+      {canEdit && <ExercisePicker athleteId={athleteId} open={picking} onClose={() => setPicking(false)} onPick={addExercise} />}
     </section>
   )
 }

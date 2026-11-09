@@ -285,3 +285,25 @@ describe('sesiones', () => {
     await assertFails(setDoc(sessionDoc(as(ATHLETE), 's6'), session(COACH)))
   })
 })
+
+describe('guías de ejercicios', () => {
+  const guide = (ownerId: string) => ({ ownerId, exerciseId: 'wg:squat', text: 'Rodillas afuera', videoUrl: '' })
+
+  it('el entrenador escribe la suya; sus atletas la leen; otros no', async () => {
+    await assertSucceeds(setDoc(doc(as(COACH), 'exerciseGuides', `${COACH}__wg:squat`), guide(COACH)))
+    await assertSucceeds(getDoc(doc(as(ATHLETE), 'exerciseGuides', `${COACH}__wg:squat`)))
+    await assertFails(getDoc(doc(as(OTHER), 'exerciseGuides', `${COACH}__wg:squat`)))
+  })
+
+  it('se puede leer una guía que todavía no existe (suscripción antes de escribirla)', async () => {
+    await assertSucceeds(getDoc(doc(as(ATHLETE), 'exerciseGuides', `${COACH}__wg:bench-press`)))
+    await assertSucceeds(getDoc(doc(as(ATHLETE), 'exerciseGuides', `${ATHLETE}__wg:bench-press`)))
+    await assertFails(getDoc(doc(as(OTHER), 'exerciseGuides', `${COACH}__wg:bench-press`)))
+  })
+
+  it('nadie escribe la guía de otro ni con un id que no le corresponde', async () => {
+    await assertFails(setDoc(doc(as(ATHLETE), 'exerciseGuides', `${COACH}__wg:squat`), guide(COACH)))
+    await assertFails(setDoc(doc(as(ATHLETE), 'exerciseGuides', `${COACH}__wg:squat`), guide(ATHLETE)))
+    await assertSucceeds(setDoc(doc(as(ATHLETE), 'exerciseGuides', `${ATHLETE}__wg:squat`), guide(ATHLETE)))
+  })
+})
