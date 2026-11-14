@@ -2,6 +2,7 @@ import { Calculator, ChartLine, Dumbbell, Settings, Users, WifiOff } from 'lucid
 import { Link, NavLink, Outlet } from 'react-router'
 import { useProfile } from '../auth/AuthProvider'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
+import { UpdateBanner } from './UpdateBanner'
 
 const tabs = [
   { to: '/', label: 'Entrenar', icon: Dumbbell, end: true, role: 'athlete' },
@@ -36,6 +37,8 @@ export function AppShell() {
           </Link>
         </div>
       </header>
+
+      <UpdateBanner />
 
       <main className="flex-1 px-4 py-5">
         <Outlet />

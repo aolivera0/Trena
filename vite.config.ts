@@ -9,7 +9,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      // La versión nueva se activa sola; la app decide cuándo recargar (src/lib/pwa.ts)
       registerType: 'autoUpdate',
+      injectRegister: false,
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Trena',
@@ -28,6 +30,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Con injectRegister: false el plugin no los activa solo: la versión
+        // nueva toma el control al instalarse y src/lib/pwa.ts decide la recarga
+        skipWaiting: true,
+        clientsClaim: true,
         // SPA: cualquier ruta sin red sirve index.html desde la caché
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/__\//],
