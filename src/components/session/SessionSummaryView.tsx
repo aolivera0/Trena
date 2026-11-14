@@ -2,6 +2,7 @@ import { Award, Clock, Dumbbell, TrendingUp } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { useProfile } from '../../auth/AuthProvider'
+import { useExerciseModal } from '../../hooks/useExerciseModal'
 import { formatClock } from '../../hooks/useNow'
 import { formatWeight } from '../../lib/format'
 import { exerciseLabel } from '../../lib/exercises'
@@ -18,11 +19,13 @@ const PR_LABELS: Record<PrType, string> = {
 }
 
 export function SessionSummaryView({
+  athleteId,
   session,
   summary,
   entries,
   backTo,
 }: {
+  athleteId: string
   session: Session
   summary: SessionSummary
   entries: EntryWithId[]
@@ -31,6 +34,7 @@ export function SessionSummaryView({
   const { profile } = useProfile()
   const { unit } = profile.prefs
   const navigate = useNavigate()
+  const { openExercise } = useExerciseModal()
   const tonnage = Math.round(summary.tonnageKg * (unit === 'lb' ? 2.2046226218 : 1))
 
   return (
@@ -99,7 +103,7 @@ export function SessionSummaryView({
         <section className="space-y-3">
           <h2 className="font-semibold">Prescrito vs hecho</h2>
           {entries.map((e) => (
-            <PlannedVsDone key={e.id} entry={e} unit={unit} />
+            <PlannedVsDone key={e.id} entry={e} unit={unit} onOpen={() => openExercise(athleteId, e.exercise.id)} />
           ))}
         </section>
       )}
@@ -121,12 +125,14 @@ function Stat({ icon, label, value }: { icon: ReactNode; label: string; value: s
   )
 }
 
-function PlannedVsDone({ entry, unit }: { entry: EntryWithId; unit: Unit }) {
+function PlannedVsDone({ entry, unit, onOpen }: { entry: EntryWithId; unit: Unit; onOpen: () => void }) {
   const addsBw = entry.exercise.addsBodyweight
   let working = 0
   return (
     <Card className="!p-3">
-      <p className="mb-2 truncate text-sm font-medium text-accent">{exerciseLabel(entry.exercise)}</p>
+      <button type="button" onClick={onOpen} className="mb-2 block max-w-full truncate text-left text-sm font-medium text-accent hover:underline">
+        {exerciseLabel(entry.exercise)}
+      </button>
       <table className="w-full text-sm tabular">
         <thead>
           <tr className="text-[11px] uppercase tracking-wide text-muted">

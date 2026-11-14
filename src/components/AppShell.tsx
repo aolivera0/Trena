@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router'
 import { useProfile } from '../auth/AuthProvider'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { UpdateBanner } from './UpdateBanner'
+import { ExerciseModalHost } from './exercise/ExerciseModalHost'
 
 const tabs = [
   { to: '/', label: 'Entrenar', icon: Dumbbell, end: true, role: 'athlete' },
@@ -43,6 +44,8 @@ export function AppShell() {
       <main className="flex-1 px-4 py-5">
         <Outlet />
       </main>
+
+      <ExerciseModalHost />
 
       <nav
         className="sticky bottom-0 grid border-t border-border bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"

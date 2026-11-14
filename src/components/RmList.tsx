@@ -1,7 +1,7 @@
 import { Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router'
 import { useProfile } from '../auth/AuthProvider'
+import { useExerciseModal } from '../hooks/useExerciseModal'
 import { setRm } from '../lib/db'
 import { exerciseLabel } from '../lib/exercises'
 import { track } from '../lib/feedback'
@@ -29,6 +29,7 @@ export function RmList({
   const [editing, setEditing] = useState<ExerciseRef | null>(null)
   const [draft, setDraft] = useState<RmDraft>({ weightKg: null, reps: 1 })
   const [picking, setPicking] = useState(false)
+  const { openExercise } = useExerciseModal()
 
   const sorted = [...rms].sort((a, b) => exerciseLabel(a.exercise).localeCompare(exerciseLabel(b.exercise), 'es'))
   const e1rm = editing ? draftE1rm(draft, editing.addsBodyweight, bodyweightKg, e1rmFormula) : null
@@ -62,13 +63,13 @@ export function RmList({
           {sorted.map((rm) => (
             <li key={rm.id} className="flex items-center gap-3 px-4 py-3">
               <ExerciseThumb slug={rm.exercise.slug} size={36} />
-              <Link to={`/exercise/${athleteId}/${encodeURIComponent(rm.id)}`} className="min-w-0 flex-1">
+              <button type="button" onClick={() => openExercise(athleteId, rm.id)} className="min-w-0 flex-1 text-left">
                 <p className="truncate font-medium">{exerciseLabel(rm.exercise)}</p>
                 <p className="text-xs text-muted">
                   {SOURCE_LABELS[rm.source]}
                   {rm.updatedAt && ` · ${rm.updatedAt.toDate().toLocaleDateString('es')}`}
                 </p>
-              </Link>
+              </button>
               <div className="text-right tabular">
                 {/* Con lastre se muestra el lastre; el RM guardado (total) sigue siendo la base de cálculo */}
                 {rm.exercise.addsBodyweight && bodyweightKg != null ? (

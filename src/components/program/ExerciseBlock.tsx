@@ -1,5 +1,6 @@
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, History, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { useExerciseModal } from '../../hooks/useExerciseModal'
 import { exerciseLabel } from '../../lib/exercises'
 import { formatRest } from '../../lib/format'
 import { groupSuggestion, newSetGroup, type AthleteContext } from '../../lib/program'
@@ -11,6 +12,7 @@ import { SetGroupSheet } from './SetGroupSheet'
 import { SuggestionText } from './SuggestionText'
 
 export function ExerciseBlock({
+  athleteId,
   exercise,
   ctx,
   canEdit,
@@ -20,6 +22,7 @@ export function ExerciseBlock({
   isFirst,
   isLast,
 }: {
+  athleteId: string // de quién es el historial que se muestra
   exercise: ProgramExercise
   ctx: AthleteContext
   canEdit: boolean
@@ -30,6 +33,7 @@ export function ExerciseBlock({
   isLast: boolean
 }) {
   const [editing, setEditing] = useState<SetGroup | null>(null)
+  const { openExercise } = useExerciseModal()
 
   function addGroup(kind: SetGroup['kind']) {
     const group = newSetGroup(kind)
@@ -66,22 +70,31 @@ export function ExerciseBlock({
           <p className="truncate font-semibold text-accent">{exercise.exercise.name}</p>
           {exercise.exercise.variant && <p className="truncate text-sm text-muted">{exercise.exercise.variant}</p>}
         </div>
-        {canEdit && (
-          <div className="flex shrink-0">
-            <IconButton label="Subir" onClick={() => onMove(-1)} disabled={isFirst}>
-              <ArrowUp size={16} />
-            </IconButton>
-            <IconButton label="Bajar" onClick={() => onMove(1)} disabled={isLast}>
-              <ArrowDown size={16} />
-            </IconButton>
-            <IconButton
-              label="Quitar ejercicio"
-              onClick={() => confirm(`¿Quitar ${exerciseLabel(exercise.exercise)}?`) && onDelete()}
-            >
-              <Trash2 size={16} />
-            </IconButton>
-          </div>
-        )}
+        <div className="flex shrink-0">
+          <IconButton
+            label={`Historial de ${exerciseLabel(exercise.exercise)}`}
+            onClick={() => openExercise(athleteId, exercise.exercise.id)}
+            className="text-accent"
+          >
+            <History size={18} />
+          </IconButton>
+          {canEdit && (
+            <>
+              <IconButton label="Subir" onClick={() => onMove(-1)} disabled={isFirst}>
+                <ArrowUp size={16} />
+              </IconButton>
+              <IconButton label="Bajar" onClick={() => onMove(1)} disabled={isLast}>
+                <ArrowDown size={16} />
+              </IconButton>
+              <IconButton
+                label="Quitar ejercicio"
+                onClick={() => confirm(`¿Quitar ${exerciseLabel(exercise.exercise)}?`) && onDelete()}
+              >
+                <Trash2 size={16} />
+              </IconButton>
+            </>
+          )}
+        </div>
       </div>
 
       {canEdit ? (
@@ -103,20 +116,20 @@ export function ExerciseBlock({
           const label = g.kind === 'warmup' ? 'W' : String(++workingIndex)
           const content = (
             <>
-              <span
-                className={`flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-bold ${
-                  g.kind === 'warmup' ? 'bg-warning/15 text-warning' : 'bg-surface-2 text-text'
-                }`}
-              >
-                {label}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium tabular">{formatPrescription(g.count, g.reps, g.load)}</span>
-                <span className="flex flex-wrap gap-x-3">
-                  <SuggestionText suggestion={groupSuggestion(g, exercise, ctx)} addsBodyweight={exercise.exercise.addsBodyweight} />
-                  <span className="text-xs text-muted">Descanso {formatRest(g.restSec)}</span>
+                <span
+                  className={`flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-bold ${
+                    g.kind === 'warmup' ? 'bg-warning/15 text-warning' : 'bg-surface-2 text-text'
+                  }`}
+                >
+                  {label}
                 </span>
-              </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium tabular">{formatPrescription(g.count, g.reps, g.load)}</span>
+                  <span className="flex flex-wrap gap-x-3">
+                    <SuggestionText suggestion={groupSuggestion(g, exercise, ctx)} addsBodyweight={exercise.exercise.addsBodyweight} />
+                    <span className="text-xs text-muted">Descanso {formatRest(g.restSec)}</span>
+                  </span>
+                </span>
             </>
           )
           return (

@@ -172,6 +172,7 @@ export function WeekCard({
               {day.exercises.map((ex, i) => (
                 <ExerciseBlock
                   key={ex.id}
+                  athleteId={athleteId}
                   exercise={ex}
                   ctx={{ rmKg: rmById.get(ex.exercise.id)?.e1rmKg ?? null, bodyweightKg }}
                   canEdit={canEdit}

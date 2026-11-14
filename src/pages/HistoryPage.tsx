@@ -1,12 +1,13 @@
 import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router'
+import { Navigate, useParams } from 'react-router'
 import { useProfile } from '../auth/AuthProvider'
 import { BodyweightPanel } from '../components/BodyweightPanel'
 import { ExerciseThumb } from '../components/ExercisePicker'
 import { SessionList } from '../components/session/SessionList'
 import { EmptyState, FullScreenSpinner, PageHeader, Segmented, Spinner } from '../components/ui'
 import { useAthlete } from '../hooks/useAthlete'
+import { useExerciseModal } from '../hooks/useExerciseModal'
 import { useExerciseStats } from '../hooks/useExerciseStats'
 import { exerciseLabel } from '../lib/exercises'
 import { formatWeight } from '../lib/format'
@@ -45,6 +46,7 @@ export function HistoryPage() {
 function ExerciseList({ athleteId }: { athleteId: string }) {
   const { profile } = useProfile()
   const { data: stats, loading } = useExerciseStats(athleteId)
+  const { openExercise } = useExerciseModal()
   const sorted = [...stats].sort((a, b) => b.lastDate - a.lastDate)
 
   if (loading) return <Spinner />
@@ -54,7 +56,7 @@ function ExerciseList({ athleteId }: { athleteId: string }) {
     <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
       {sorted.map((s) => (
         <li key={s.id}>
-          <Link to={`/exercise/${athleteId}/${encodeURIComponent(s.id)}`} className="flex items-center gap-3 p-3 hover:bg-surface-2">
+          <button type="button" onClick={() => openExercise(athleteId, s.id)} className="flex w-full items-center gap-3 p-3 text-left hover:bg-surface-2">
             <ExerciseThumb slug={s.exercise.slug} size={40} />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{exerciseLabel(s.exercise)}</span>
@@ -68,7 +70,7 @@ function ExerciseList({ athleteId }: { athleteId: string }) {
               <span className="block text-[11px] text-muted">mejor e1RM</span>
             </span>
             <ChevronRight size={18} className="text-muted" />
-          </Link>
+          </button>
         </li>
       ))}
     </ul>
