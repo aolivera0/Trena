@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { computeFinish, countExerciseSessions, expandDay, liveSuggestion, sortedSets, type EntryWithId } from './session'
+import {
+  computeFinish,
+  countExerciseSessions,
+  defaultRepsFor,
+  expandDay,
+  liveSuggestion,
+  matchPrevious,
+  sortedSets,
+  targetRepsLabel,
+  type EntryWithId,
+} from './session'
 import type { Day, ExerciseRef, ExerciseStats, SessionSet } from './types'
 
 const squat: ExerciseRef = { id: 'wg:squat', name: 'Sentadilla', variant: null, slug: 'squat', addsBodyweight: false }
@@ -216,5 +226,43 @@ describe('contador de veces', () => {
     ])
     expect(counts.get(squat.id)).toBe(2)
     expect(counts.get(pullup.id)).toBe(1)
+  })
+})
+
+describe('serie anterior', () => {
+  const last = [
+    { kind: 'warmup' as const, weightKg: 60, reps: 5, rpe: null },
+    { kind: 'warmup' as const, weightKg: 100, reps: 3, rpe: null },
+    { kind: 'working' as const, weightKg: 140, reps: 5, rpe: 8 },
+    { kind: 'working' as const, weightKg: 140, reps: 5, rpe: 8.5 },
+  ]
+  const today = (kinds: SessionSet['kind'][]): [string, SessionSet][] =>
+    kinds.map((kind, i) => [`s${i}`, set({ kind, order: i })])
+
+  it('empareja calentamientos con calentamientos y efectivas con efectivas', () => {
+    const m = matchPrevious(today(['warmup', 'warmup', 'working', 'working']), last)
+    expect([...m.values()].map((p) => p.weightKg)).toEqual([60, 100, 140, 140])
+  })
+
+  it('un calentamiento extra no desplaza las efectivas', () => {
+    const m = matchPrevious(today(['warmup', 'warmup', 'warmup', 'working', 'working']), last)
+    expect(m.get('s2')).toBeUndefined()
+    expect(m.get('s3')?.weightKg).toBe(140)
+    expect(m.get('s4')?.rpe).toBe(8.5)
+  })
+
+  it('sin calentamientos hoy, la 1.ª efectiva sigue siendo la 1.ª efectiva', () => {
+    const m = matchPrevious(today(['working', 'working', 'working']), last)
+    expect(m.get('s0')?.weightKg).toBe(140)
+    expect(m.get('s2')).toBeUndefined()
+  })
+})
+
+describe('textos de ayuda de reps', () => {
+  it('rango usa el mínimo y AMRAP queda vacío', () => {
+    expect(targetRepsLabel({ type: 'range', min: 8, max: 10 })).toBe('8')
+    expect(defaultRepsFor({ type: 'range', min: 8, max: 10 })).toBe(8)
+    expect(targetRepsLabel({ type: 'amrap' })).toBe('')
+    expect(defaultRepsFor({ type: 'amrap' })).toBeNull()
   })
 })

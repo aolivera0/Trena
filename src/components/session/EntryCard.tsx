@@ -5,6 +5,7 @@ import { useEntryWriter } from '../../hooks/useEntryWriter'
 import { exerciseLabel } from '../../lib/exercises'
 import {
   defaultRepsFor,
+  matchPrevious,
   emptySet,
   liveSuggestion,
   nextOrder,
@@ -94,7 +95,9 @@ export function EntryCard({
       {
         [`${p}.done`]: true,
         [`${p}.completedAt`]: Date.now(),
-        [`${p}.weightKg`]: set.weightKg ?? suggestedKg(set) ?? (addsBodyweight ? 0 : null),
+        // Sin peso ni sugerencia: con lastre o en calentamiento cuenta como 0
+        // (barra vacía / peso corporal) para que quede en el historial
+        [`${p}.weightKg`]: set.weightKg ?? suggestedKg(set) ?? (addsBodyweight || set.kind === 'warmup' ? 0 : null),
         [`${p}.reps`]: set.reps ?? defaultRepsFor(set.prescription?.reps),
       },
       true,
@@ -112,6 +115,7 @@ export function EntryCard({
   }
 
   let working = 0
+  const previous = matchPrevious(sets, stats?.lastSets)
   const menu = menuSet ? sets.find(([id]) => id === menuSet) : undefined
 
   return (
@@ -169,10 +173,10 @@ export function EntryCard({
       </div>
 
       <ul>
-        {sets.map(([id, set], index) => {
+        {sets.map(([id, set]) => {
           const p = `sets.${id}`
           const label = set.kind === 'warmup' ? 'W' : String(++working)
-          const prev = stats?.lastSets[index]
+          const prev = previous.get(id)
           const suggestion = liveSuggestion(set, live, ctx)
           const placeholder =
             suggestion?.kind === 'kg'
@@ -199,11 +203,12 @@ export function EntryCard({
                 <button
                   type="button"
                   onClick={() => write({ [`${p}.weightKg`]: prev.weightKg, [`${p}.reps`]: prev.reps }, true)}
-                  className="-mx-1 h-9 truncate rounded-md px-1 text-left text-xs text-muted tabular hover:bg-surface-2 hover:text-text active:bg-surface-2"
+                  className="h-8 min-w-0 truncate rounded-md bg-surface-2 px-1.5 text-left text-xs text-muted tabular underline decoration-border decoration-dotted underline-offset-2 hover:text-text active:bg-accent/20"
                   aria-label={`Usar la marca anterior en la serie ${label}`}
+                  title="Tocar para copiar"
                 >
                   {addsBodyweight ? '+' : ''}
-                  {Number(kgToUnit(prev.weightKg, unit).toFixed(1))} × {prev.reps}
+                  {Number(kgToUnit(prev.weightKg, unit).toFixed(1))}×{prev.reps}
                 </button>
               ) : (
                 <span className="text-xs text-muted">—</span>

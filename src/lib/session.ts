@@ -69,9 +69,9 @@ export function targetRepsLabel(reps: Reps | undefined): string {
     case 'fixed':
       return String(reps.n)
     case 'range':
-      return `${reps.min}-${reps.max}`
+      return String(reps.min)
     case 'amrap':
-      return 'máx'
+      return ''
     case 'emom':
       return String(reps.repsPerMin * reps.minutes)
     case 'cluster':
@@ -86,7 +86,7 @@ export function defaultRepsFor(reps: Reps | undefined): number | null {
     case 'fixed':
       return reps.n
     case 'range':
-      return reps.max
+      return reps.min
     case 'amrap':
       return null
     case 'emom':
@@ -94,6 +94,28 @@ export function defaultRepsFor(reps: Reps | undefined): number | null {
     case 'cluster':
       return reps.repsPerBlock * reps.blocks
   }
+}
+
+// Empareja cada serie de hoy con la de la última vez del mismo tipo: el 1.er
+// calentamiento con el 1.er calentamiento, la 1.ª efectiva con la 1.ª efectiva.
+// Así agregar o quitar calentamientos no desplaza las efectivas.
+export function matchPrevious(
+  sets: [string, SessionSet][],
+  lastSets: ExerciseStats['lastSets'] | undefined,
+): Map<string, ExerciseStats['lastSets'][number]> {
+  const result = new Map<string, ExerciseStats['lastSets'][number]>()
+  if (!lastSets?.length) return result
+  const byKind = {
+    warmup: lastSets.filter((s) => s.kind === 'warmup'),
+    working: lastSets.filter((s) => s.kind !== 'warmup'),
+  }
+  const seen = { warmup: 0, working: 0 }
+  for (const [id, set] of sets) {
+    const kind = set.kind === 'warmup' ? 'warmup' : 'working'
+    const prev = byKind[kind][seen[kind]++]
+    if (prev) result.set(id, prev)
+  }
+  return result
 }
 
 export function targetRpe(load: Load | undefined): number | null {
