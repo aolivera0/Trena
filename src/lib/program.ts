@@ -16,6 +16,14 @@ export function newDay(index: number): Day {
   return { id: newId(), name: `Día ${index}`, notes: '', exercises: [] }
 }
 
+// Series efectivas del día: suma los grupos "working" (como expandDay, mínimo 1 por grupo)
+export function workingSetCount(day: Day): number {
+  return day.exercises.reduce(
+    (n, ex) => n + ex.setGroups.reduce((m, g) => m + (g.kind === 'working' ? Math.max(1, g.count) : 0), 0),
+    0,
+  )
+}
+
 export function move<T>(list: T[], from: number, to: number): T[] {
   if (to < 0 || to >= list.length) return list
   const next = [...list]

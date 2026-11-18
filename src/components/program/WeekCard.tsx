@@ -1,9 +1,9 @@
-import { ChevronDown, Copy, Eye, EyeOff, Play, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, Copy, Eye, EyeOff, Layers, Play, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useDebouncedWeek } from '../../hooks/useDebouncedWeek'
 import { deleteWeek, duplicateWeek, saveWeek, setWeekStatus } from '../../lib/db'
 import { track } from '../../lib/feedback'
-import { move, newDay, newProgramExercise } from '../../lib/program'
+import { move, newDay, newProgramExercise, workingSetCount } from '../../lib/program'
 import type { Day, ExerciseRef, ProgramExercise, RM, Week, WithId } from '../../lib/types'
 import { ExercisePicker } from '../ExercisePicker'
 import { Badge, Button, EmptyState, IconButton, Input } from '../ui'
@@ -169,6 +169,8 @@ export function WeekCard({
                 day.notes && <p className="whitespace-pre-wrap text-sm text-muted">{day.notes}</p>
               )}
 
+              {day.exercises.length > 0 && <DayTotals day={day} />}
+
               {day.exercises.map((ex, i) => (
                 <ExerciseBlock
                   key={ex.id}
@@ -203,5 +205,21 @@ export function WeekCard({
 
       {canEdit && <ExercisePicker athleteId={athleteId} open={picking} onClose={() => setPicking(false)} onPick={addExercise} />}
     </section>
+  )
+}
+
+// Se recalcula con cada cambio local, antes de que se guarde
+function DayTotals({ day }: { day: Day }) {
+  const sets = workingSetCount(day)
+  const exercises = day.exercises.length
+  return (
+    <p className="flex items-center gap-2 text-sm text-muted">
+      <Layers size={14} className="shrink-0 text-accent" />
+      <span>
+        <span className="font-semibold text-text tabular">{sets}</span> {sets === 1 ? 'serie efectiva' : 'series efectivas'}
+        {' · '}
+        <span className="tabular">{exercises}</span> {exercises === 1 ? 'ejercicio' : 'ejercicios'}
+      </span>
+    </p>
   )
 }
