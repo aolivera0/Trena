@@ -1,5 +1,5 @@
 import { query, where } from 'firebase/firestore'
-import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Copy, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { useProfile } from '../auth/AuthProvider'
@@ -7,7 +7,7 @@ import { WeekCard } from '../components/program/WeekCard'
 import { Button, EmptyState, FullScreenSpinner, IconButton, Input } from '../components/ui'
 import { useAthlete } from '../hooks/useAthlete'
 import { useDoc, useQuery } from '../hooks/useFirestore'
-import { addWeek, deleteProgram, programRef, renameProgram, weeksCol } from '../lib/db'
+import { addWeek, deleteProgram, duplicateWeek, programRef, renameProgram, weeksCol } from '../lib/db'
 import { track } from '../lib/feedback'
 import { expandDay } from '../lib/session'
 import { startSession } from '../lib/sessionDb'
@@ -43,7 +43,8 @@ export function ProgramPage() {
   if (!program || !athlete) return <Navigate to="/" replace />
 
   const sorted = [...weeks].sort((a, b) => a.index - b.index)
-  const nextIndex = (sorted.at(-1)?.index ?? 0) + 1
+  const lastWeek = sorted.at(-1)
+  const nextIndex = (lastWeek?.index ?? 0) + 1
   const back = isSelf ? '/' : `/athlete/${athleteId}`
 
   function saveName() {
@@ -130,10 +131,25 @@ export function ProgramPage() {
         ))
       )}
 
-      {canEdit && (
-        <Button className="w-full" onClick={() => track(addWeek(athleteId, programId, nextIndex))}>
-          <Plus size={16} /> Semana {nextIndex}
-        </Button>
+      {canEdit && !weeksLoading && (
+        <div className="space-y-2">
+          {/* Copia días, ejercicios y series de la última semana como borrador nuevo */}
+          {lastWeek && (
+            <Button
+              className="w-full"
+              onClick={() => track(duplicateWeek(athleteId, programId, lastWeek, nextIndex), 'No se pudo copiar la semana')}
+            >
+              <Copy size={16} /> <span className="truncate">Semana {nextIndex} copiando {lastWeek.name}</span>
+            </Button>
+          )}
+          <Button
+            variant={lastWeek ? 'ghost' : 'secondary'}
+            className="w-full"
+            onClick={() => track(addWeek(athleteId, programId, nextIndex))}
+          >
+            <Plus size={16} /> Semana {nextIndex} {lastWeek ? 'vacía' : ''}
+          </Button>
+        </div>
       )}
     </div>
   )

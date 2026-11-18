@@ -7,7 +7,9 @@ export type Prefs = {
   unit: Unit
   roundingKg: RoundingKg
   e1rmFormula: E1rmFormula
-  autoRest?: boolean // iniciar el descanso al marcar una serie (por defecto no)
+  // true = el descanso solo se inicia a mano; por defecto arranca al marcar una serie.
+  // (Sustituye a `autoRest`, que por defecto era manual.)
+  manualRest?: boolean
 }
 
 export type UserProfile = {

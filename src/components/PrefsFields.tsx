@@ -41,8 +41,8 @@ export function PrefsFields({ prefs, onChange }: { prefs: Prefs; onChange: (pref
       </Field>
       <Toggle
         label="Iniciar el descanso al completar una serie"
-        checked={prefs.autoRest ?? false}
-        onChange={(autoRest) => onChange({ ...prefs, autoRest })}
+        checked={!prefs.manualRest}
+        onChange={(auto) => onChange({ ...prefs, manualRest: !auto })}
       />
     </div>
   )

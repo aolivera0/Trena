@@ -71,9 +71,9 @@ export function SessionPage() {
     if (restSec > 0) updateSession(athleteId, sessionId, { restTimer: { endsAt: Date.now() + restSec * 1000, durationSec: restSec } })
   }
 
-  // Por defecto el descanso se inicia a mano; en Ajustes se puede automatizar
+  // Por defecto el descanso arranca al marcar la serie; en Ajustes se puede dejar manual
   function onSetDone(restSec: number) {
-    if (profile.prefs.autoRest) startRest(restSec)
+    if (!profile.prefs.manualRest) startRest(restSec)
   }
 
   function finish() {
